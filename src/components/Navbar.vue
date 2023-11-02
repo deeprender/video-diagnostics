@@ -17,7 +17,7 @@
 
 <script>
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
-import FolderItem from '../../.legacy/FolderItem.vue';
+import FolderItem from './FolderItem.vue';
 
 
 export default {
