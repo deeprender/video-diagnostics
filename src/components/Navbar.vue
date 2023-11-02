@@ -4,10 +4,10 @@
       <input type="text" v-model="searchQuery" placeholder="Search videos..." />
     </div>
     <div class="scene-list">
-      <folder-item 
-        v-for="folder in sceneList" 
-        :key="folder.id" 
-        :folder="folder" 
+      <folder-item
+        v-for="folder in sceneList"
+        :key="folder.id"
+        :folder="folder"
         @video-selected="onVideoChange"
         @toggle-folder="toggleScene"
       />
@@ -149,7 +149,6 @@ h3 {
 .scene-list {
   width: 100%;
 }
-
 
 .scene-folder {
   display: flex;
