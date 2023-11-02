@@ -1,10 +1,10 @@
 <template>
   <div class="navbar">
     <div class="scene-list">
-      <folder-item 
-        v-for="folder in sceneList" 
-        :key="folder.id" 
-        :folder="folder" 
+      <folder-item
+        v-for="folder in sceneList"
+        :key="folder.id"
+        :folder="folder"
         @video-selected="onVideoChange"
         @toggle-folder="toggleScene"
       />
@@ -126,7 +126,6 @@ h3 {
 .scene-list {
   width: 100%;
 }
-
 
 .scene-folder {
   display: flex;
