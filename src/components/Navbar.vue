@@ -1,28 +1,26 @@
 <template>
   <div class="navbar">
     <div class="scene-list">
-      <div v-for="scene in sceneList" :key="scene.id" class="scene-folder" @click="toggleScene(scene.id)">
-        <div class="scene-title">
-          <font-awesome-icon class="folder-icon" :icon="scene.isOpen ? 'folder-open' : 'folder'" />{{ scene.title }}
-        </div>
-        <div v-if="scene.isOpen">
-          <div v-for="video in scene.videoList" :key="video.id" class="video-tile" @click.stop="onVideoChange(video.src)">
-            <font-awesome-icon class="tree-branch" icon="video" />
-            {{ video.title }}
-          </div>
-        </div>
-      </div>
+      <folder-item 
+        v-for="folder in sceneList" 
+        :key="folder.id" 
+        :folder="folder" 
+        @video-selected="onVideoChange"
+        @toggle-folder="toggleScene"
+      />
     </div>
   </div>
 </template>
 
-
 <script>
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
+import FolderItem from '../../.legacy/FolderItem.vue';
+
 
 export default {
   components: {
     FontAwesomeIcon,
+    FolderItem,
   },
   data() {
     return {
@@ -38,32 +36,70 @@ export default {
         const response = await fetch('/api/videos/list');
         if (!response.ok) throw new Error('Network response was not ok');
         const scenesData = await response.json();
-        console.log(scenesData)
         this.sceneList = this.transformScenesData(scenesData);
-        console.log(this.transformScenesData(scenesData));
       } catch (error) {
         console.error('Error fetching video list:', error);
       }
     },
+
+
     transformScenesData(scenesData) {
-      return scenesData.map((scene, sceneIndex) => ({
-        id: sceneIndex + 1,
-        title: scene.title,
+    const transformVideos = (videos, path) => {
+      return videos.flatMap(video => {
+        const videoPath = `${path}/${video.title}`;
+        if (video.videos) {
+          // If the video has nested videos, treat it as a folder and recursively transform
+          return transformFolder(video, videoPath);
+        }
+        // If the video is a leaf node, transform it into the required format
+        return {
+          id: video.filename,
+          title: video.title,
+          src: `/api/${video.path}`
+        };
+      });
+    };
+
+    const transformFolder = (folder, path) => {
+      const folderPath = `${path}/${folder.title}`;
+      const transformedFolder = {
+        id: folderPath,
+        title: folder.title,
         isOpen: false,
-        videoList: scene.videos.flatMap((videoGroup) =>
-          videoGroup.videos.map((video) => ({
-            id: video.filename,
-            title: video.title,
-            src: `/api/${video.path}`
-          }))
-        )
-      }));
-    },
+        videoList: [],
+        subFolders: []
+      };
+
+      if (folder.videos) {
+        const videosAndFolders = transformVideos(folder.videos, folderPath);
+        // Separate videos and folders based on whether an item has a src property
+        transformedFolder.videoList = videosAndFolders.filter(item => item.src);
+        transformedFolder.subFolders = videosAndFolders.filter(item => !item.src);
+      }
+
+      return transformedFolder;
+    };
+
+    return scenesData.map(scene => transformFolder(scene, ''));
+  },
+
+
+
+
     toggleScene(sceneId) {
-      this.sceneList = this.sceneList.map((scene) =>
-        scene.id === sceneId ? { ...scene, isOpen: !scene.isOpen } : scene
-      );
-    },
+    const toggleFolder = (folders) => {
+      return folders.map(folder => {
+        if (folder.id === sceneId) {
+          return { ...folder, isOpen: !folder.isOpen };
+        } else if (folder.subFolders && folder.subFolders.length > 0) {
+          const updatedSubFolders = toggleFolder(folder.subFolders);
+          return { ...folder, subFolders: updatedSubFolders };
+        }
+        return folder;
+      });
+    };
+    this.sceneList = toggleFolder(this.sceneList);
+  },
     onVideoChange(src) {
       this.$emit('video-selected', src);
     },
