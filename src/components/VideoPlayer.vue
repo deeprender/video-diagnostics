@@ -32,6 +32,12 @@
 
 <script>
 export default {
+  props: {
+    videoSrc: {
+      type: String,
+      default: ''
+    }
+  },
   data() {
     return {
       clippedVideoSrc: '',
@@ -53,6 +59,13 @@ export default {
     this.videoContainer.addEventListener('touchmove', this.trackLocation, false);
     this.mainVideo.addEventListener('ended', this.syncVideos, false);
     this.clippedVideo.addEventListener('ended', this.syncVideos, false);
+
+    if (this.videoSrc) {
+      this.setVideoSrc(this.videoSrc);
+    }
+  },
+  watch: {
+    videoSrc: 'setVideoSrc'
   },
   computed: {
     videoLabels() {
@@ -63,6 +76,9 @@ export default {
     }
   },
   methods: {
+    setVideoSrc(src) {
+      this.setClippedVideoSrc(src);
+    },
     trackLocation(e) {
       const rect = this.videoContainer.getBoundingClientRect();
       const position = ((e.pageX - rect.left) / this.videoContainer.offsetWidth) * 100;
@@ -84,53 +100,43 @@ export default {
       }
       this.syncVideos();
     },
-
     updateVideoSource(videoElement, src) {
       videoElement.pause();
       videoElement.src = src;
       videoElement.load();
 
-      // Listen for the 'canplay' event and then call play()
       videoElement.addEventListener('canplay', function onCanPlay() {
         videoElement.play();
-        // Remove the event listener to avoid multiple calls
         videoElement.removeEventListener('canplay', onCanPlay);
       });
     },
-
     syncVideos() {
       this.mainVideo.currentTime = 0;
       this.clippedVideo.currentTime = 0;
       this.mainVideo.play();
       this.clippedVideo.play();
     },
-
     swapVideos() {
       const tempSrc = this.mainVideoSrc;
       this.mainVideoSrc = this.clippedVideoSrc;
       this.clippedVideoSrc = tempSrc;
 
-      // Update the video sources
       this.updateVideoSource(this.mainVideo, this.mainVideoSrc);
       this.updateVideoSource(this.clippedVideo, this.clippedVideoSrc);
 
       this.videoLabels.main = this.getFileName(this.mainVideoSrc);
       this.videoLabels.clipped = this.getFileName(this.clippedVideoSrc);
 
-      // Sync the videos
       this.syncVideos();
     },
-
     pauseVideos() {
       this.mainVideo.pause();
       this.clippedVideo.pause();
     },
-
     resumeVideos() {
       this.mainVideo.play();
       this.clippedVideo.play();
     },
-
     toggleFullscreen() {
       this.isFullscreen = !this.isFullscreen;
       if (document.fullscreenElement || document.webkitFullscreenElement) {
@@ -148,7 +154,6 @@ export default {
         }
       }
     },
-
     getFileName(src) {
       return src.split('/').pop();
     }
