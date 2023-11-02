@@ -22,23 +22,20 @@
 
 
 <script>
-import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
-
+import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 
 export default {
-  name: "Navbar",
   components: {
     FontAwesomeIcon,
   },
   data() {
     return {
-      selectedVideo: "",
       sceneList: [],
       searchQuery: "",
     };
   },
   async mounted() {
-    this.populateSceneList();
+    await this.populateSceneList();
   },
   computed: {
     filteredSceneList() {
@@ -61,37 +58,30 @@ export default {
   },
   methods: {
     async populateSceneList() {
-      // Import all mp4 files in /src/assets/videos folder
-      const videoImports = import.meta.glob("/src/assets/videos/*/*.mp4");
-
-      // Iterate through the imports and create the video objects
-      let sceneId = 1;
-      const scenes = {};
-
-      for (const [src, importFunction] of Object.entries(videoImports)) {
-        const file = await importFunction();
-        const pathParts = src.split("/");
-        const sceneTitle = pathParts[pathParts.length - 2];
-        const videoTitle = pathParts.pop().replace(".mp4", "");
-
-        if (!scenes[sceneTitle]) {
-          scenes[sceneTitle] = {
-            id: sceneId,
-            title: sceneTitle,
-            isOpen: false,
-            videoList: [],
-          };
-          sceneId++;
-        }
-
-        scenes[sceneTitle].videoList.push({
-          id: scenes[sceneTitle].videoList.length + 1,
-          title: videoTitle,
-          src: src,
-        });
+      try {
+        const response = await fetch('/api/videos/list');
+        if (!response.ok) throw new Error('Network response was not ok');
+        const scenesData = await response.json();
+        console.log(scenesData)
+        this.sceneList = this.transformScenesData(scenesData);
+        console.log(this.transformScenesData(scenesData));
+      } catch (error) {
+        console.error('Error fetching video list:', error);
       }
-
-      this.sceneList = Object.values(scenes);
+    },
+    transformScenesData(scenesData) {
+      return scenesData.map((scene, sceneIndex) => ({
+        id: sceneIndex + 1,
+        title: scene.title,
+        isOpen: false,
+        videoList: scene.videos.flatMap((videoGroup) =>
+          videoGroup.videos.map((video) => ({
+            id: video.filename,
+            title: video.title,
+            src: `/api/${video.path}`
+          }))
+        )
+      }));
     },
     toggleScene(sceneId) {
       this.sceneList = this.sceneList.map((scene) =>
@@ -99,7 +89,7 @@ export default {
       );
     },
     onVideoChange(src) {
-      this.$emit("video-selected", src);
+      this.$emit('video-selected', src);
     },
   },
 };

@@ -33,6 +33,12 @@
 
 <script>
 export default {
+  props: {
+    videoSrc: {
+      type: String,
+      default: ''
+    }
+  },
   data() {
     return {
       clippedVideoSrc: '',
@@ -65,6 +71,9 @@ export default {
     }
   },
   methods: {
+    setVideoSrc(src) {
+      this.setClippedVideoSrc(src);
+    },
     trackLocation(e) {
       const rect = this.videoContainer.getBoundingClientRect();
       const position = ((e.pageX - rect.left) / this.videoContainer.offsetWidth) * 100;
@@ -91,7 +100,6 @@ export default {
         console.error('Error when setting the video source or syncing:', error);
       }
     },
-
     updateVideoSource(videoElement, src) {
       videoElement.pause();
       videoElement.src = src;
@@ -121,33 +129,27 @@ export default {
         // Handle play error, for example by showing a user-friendly message
       }
     },
-
     swapVideos() {
       const tempSrc = this.mainVideoSrc;
       this.mainVideoSrc = this.clippedVideoSrc;
       this.clippedVideoSrc = tempSrc;
 
-      // Update the video sources
       this.updateVideoSource(this.mainVideo, this.mainVideoSrc);
       this.updateVideoSource(this.clippedVideo, this.clippedVideoSrc);
 
       this.videoLabels.main = this.getFileName(this.mainVideoSrc);
       this.videoLabels.clipped = this.getFileName(this.clippedVideoSrc);
 
-      // Sync the videos
       this.syncVideos();
     },
-
     pauseVideos() {
       this.mainVideo.pause();
       this.clippedVideo.pause();
     },
-
     resumeVideos() {
       this.mainVideo.play();
       this.clippedVideo.play();
     },
-
     toggleFullscreen() {
       this.isFullscreen = !this.isFullscreen;
       if (document.fullscreenElement || document.webkitFullscreenElement) {
@@ -165,7 +167,6 @@ export default {
         }
       }
     },
-
     getFileName(src) {
       return src.split('/').pop();
     }
