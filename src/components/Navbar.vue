@@ -10,6 +10,7 @@
         :folder="folder"
         @video-selected="onVideoChange"
         @toggle-folder="toggleScene"
+        @two-videos-selected="onTwoVideosSelected"
       />
     </div>
   </div>
@@ -43,7 +44,7 @@ export default {
 
           const filteredVideos = scene.videoList.filter(video => regex.test(video.title));
           const filteredFolders = filterScenes(scene.subFolders, regex);
-          
+
           if (match || filteredVideos.length > 0 || filteredFolders.length > 0) {
             const filteredScene = { ...scene };
             if (!match) {
@@ -142,6 +143,9 @@ export default {
   },
     onVideoChange(src) {
       this.$emit('video-selected', src);
+    },
+    onTwoVideosSelected(src1, src2) {
+      this.$emit('two-videos-selected', src1, src2);
     },
   },
 };

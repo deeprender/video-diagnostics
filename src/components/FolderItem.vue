@@ -9,11 +9,11 @@
         <font-awesome-icon class="tree-branch" icon="video" />
         {{ video.title }}
       </div>
-      <folder-item 
-        v-for="subFolder in folder.subFolders" 
-        :key="subFolder.id" 
-        :folder="subFolder" 
-        @video-selected="onVideoChange" 
+      <folder-item
+        v-for="subFolder in folder.subFolders"
+        :key="subFolder.id"
+        :folder="subFolder"
+        @video-selected="onVideoChange"
         @toggle-folder="onToggleFolder"
       />
     </div>
@@ -34,12 +34,21 @@ export default {
   methods: {
     toggleFolder() {
       this.$emit('toggle-folder', this.folder.id);
+
+      if (this.isLeafFolder() && !this.folder.isOpen) {
+        // If this is a leaf folder and it is being opened, emit the first two videos
+        this.$emit('two-videos-selected', this.folder.videoList[0].src, this.folder.videoList[1].src);
+      }
     },
     onVideoChange(src) {
       this.$emit('video-selected', src);
     },
     onToggleFolder(folderId) {
       this.$emit('toggle-folder', folderId);
+    },
+    isLeafFolder() {
+      // A leaf folder is a folder with no subfolders and more than one video
+      return this.folder.videoList.length > 1 && this.folder.subFolders.length === 0;
     },
   },
 };

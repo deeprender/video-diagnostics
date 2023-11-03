@@ -1,6 +1,6 @@
 <template>
   <div id="app">
-    <Navbar @video-selected="changeClippedVideo"></Navbar>
+    <Navbar @video-selected="changeClippedVideo" @two-videos-selected="populateBothVideos"></Navbar>
     <VideoCompare ref="videoCompare"></VideoCompare>
   </div>
 </template>
@@ -23,6 +23,12 @@ export default {
   methods: {
     changeClippedVideo(src) {
       this.$refs.videoCompare.setClippedVideoSrc(src);
+    },
+    populateBothVideos(src1, src2) {
+      this.$refs.videoCompare.selectedVideo = "LEFT"
+      this.$refs.videoCompare.setClippedVideoSrc(src1);
+      this.$refs.videoCompare.selectedVideo = "RIGHT"
+      this.$refs.videoCompare.setClippedVideoSrc(src2);
     },
   },
 };
