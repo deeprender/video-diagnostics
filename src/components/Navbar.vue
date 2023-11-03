@@ -5,7 +5,7 @@
     </div>
     <div class="scene-list">
       <folder-item
-        v-for="folder in sceneList"
+        v-for="folder in filteredSceneList"
         :key="folder.id"
         :folder="folder"
         @video-selected="onVideoChange"
@@ -36,24 +36,41 @@ export default {
   },
   computed: {
     filteredSceneList() {
+      const filterScenes = (scenes, regex) => {
+        return scenes.reduce((acc, scene) => {
+          const match = regex.test(scene.title);
+          console.log('Checking scene', scene.title, 'Match:', match);
+
+          const filteredVideos = scene.videoList.filter(video => regex.test(video.title));
+          const filteredFolders = filterScenes(scene.subFolders, regex);
+          
+          if (match || filteredVideos.length > 0 || filteredFolders.length > 0) {
+            const filteredScene = { ...scene };
+            if (!match) {
+              console.log('Folder does not match. Filtering descendants.');
+              filteredScene.videoList = filteredVideos;
+              filteredScene.subFolders = filteredFolders;
+            }
+            acc.push(filteredScene);
+          }
+          return acc;
+        }, []);
+      };
+
       if (!this.searchQuery) {
+        console.log('No search query. Returning full scene list.');
         return this.sceneList;
       }
-
-      try {
-        const regex = new RegExp(this.searchQuery, 'i'); // 'i' for case insensitive
-
-        return this.sceneList.map(scene => ({
-          ...scene,
-          videoList: scene.videoList.filter(video => regex.test(video.title))
-        })).filter(scene => scene.videoList.length > 0);
-      } catch (e) {
-        // If the regex is invalid, return the full scene list
-        return this.sceneList;
-      }
+      const regex = new RegExp(this.escapeRegex(this.searchQuery), 'i');
+      console.log('Filtering with regex:', regex);
+      return filterScenes(this.sceneList, regex);
     }
   },
+
   methods: {
+    escapeRegex(text) {
+      return text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
+    },
     async populateSceneList() {
       try {
         const response = await fetch('/api/videos/list');
