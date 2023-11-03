@@ -4,102 +4,144 @@
       <input type="text" v-model="searchQuery" placeholder="Search videos..." />
     </div>
     <div class="scene-list">
-      <div v-for="scene in filteredSceneList" :key="scene.id" class="scene-folder" @click="toggleScene(scene.id)">
-        <div class="scene-title">
-          <font-awesome-icon class="folder-icon" :icon="scene.isOpen ? 'folder-open' : 'folder'" />{{ scene.title
-          }}
-        </div>
-        <div v-if="scene.isOpen">
-          <div v-for="video in scene.videoList" :key="video.id" class="video-tile" @click.stop="onVideoChange(video.src)">
-            <font-awesome-icon class="tree-branch" icon="video" />
-            {{ video.title }}
-          </div>
-        </div>
-      </div>
+      <folder-item
+        v-for="folder in filteredSceneList"
+        :key="folder.id"
+        :folder="folder"
+        @video-selected="onVideoChange"
+        @toggle-folder="toggleScene"
+      />
     </div>
   </div>
 </template>
 
-
 <script>
-import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
+import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
+import FolderItem from './FolderItem.vue';
 
 
 export default {
-  name: "Navbar",
   components: {
     FontAwesomeIcon,
+    FolderItem,
   },
   data() {
     return {
-      selectedVideo: "",
       sceneList: [],
       searchQuery: "",
     };
   },
   async mounted() {
-    this.populateSceneList();
+    await this.populateSceneList();
   },
   computed: {
     filteredSceneList() {
+      const filterScenes = (scenes, regex) => {
+        return scenes.reduce((acc, scene) => {
+          const match = regex.test(scene.title);
+          console.log('Checking scene', scene.title, 'Match:', match);
+
+          const filteredVideos = scene.videoList.filter(video => regex.test(video.title));
+          const filteredFolders = filterScenes(scene.subFolders, regex);
+          
+          if (match || filteredVideos.length > 0 || filteredFolders.length > 0) {
+            const filteredScene = { ...scene };
+            if (!match) {
+              console.log('Folder does not match. Filtering descendants.');
+              filteredScene.videoList = filteredVideos;
+              filteredScene.subFolders = filteredFolders;
+            }
+            acc.push(filteredScene);
+          }
+          return acc;
+        }, []);
+      };
+
       if (!this.searchQuery) {
+        console.log('No search query. Returning full scene list.');
         return this.sceneList;
       }
-
-      try {
-        const regex = new RegExp(this.searchQuery, 'i'); // 'i' for case insensitive
-
-        return this.sceneList.map(scene => ({
-          ...scene,
-          videoList: scene.videoList.filter(video => regex.test(video.title))
-        })).filter(scene => scene.videoList.length > 0);
-      } catch (e) {
-        // If the regex is invalid, return the full scene list
-        return this.sceneList;
-      }
+      const regex = new RegExp(this.escapeRegex(this.searchQuery), 'i');
+      console.log('Filtering with regex:', regex);
+      return filterScenes(this.sceneList, regex);
     }
   },
+
   methods: {
+    escapeRegex(text) {
+      return text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
+    },
     async populateSceneList() {
-      // Import all mp4 files in /src/assets/videos folder
-      const videoImports = import.meta.glob("/src/assets/videos/*/*.mp4");
+      try {
+        const response = await fetch('/api/videos/list');
+        if (!response.ok) throw new Error('Network response was not ok');
+        const scenesData = await response.json();
+        this.sceneList = this.transformScenesData(scenesData);
+      } catch (error) {
+        console.error('Error fetching video list:', error);
+      }
+    },
 
-      // Iterate through the imports and create the video objects
-      let sceneId = 1;
-      const scenes = {};
 
-      for (const [src, importFunction] of Object.entries(videoImports)) {
-        const file = await importFunction();
-        const pathParts = src.split("/");
-        const sceneTitle = pathParts[pathParts.length - 2];
-        const videoTitle = pathParts.pop().replace(".mp4", "");
-
-        if (!scenes[sceneTitle]) {
-          scenes[sceneTitle] = {
-            id: sceneId,
-            title: sceneTitle,
-            isOpen: false,
-            videoList: [],
-          };
-          sceneId++;
+    transformScenesData(scenesData) {
+    const transformVideos = (videos, path) => {
+      return videos.flatMap(video => {
+        const videoPath = `${path}/${video.title}`;
+        if (video.videos) {
+          // If the video has nested videos, treat it as a folder and recursively transform
+          return transformFolder(video, videoPath);
         }
+        // If the video is a leaf node, transform it into the required format
+        return {
+          id: video.filename,
+          title: video.title,
+          src: `/api/${video.path}`
+        };
+      });
+    };
 
-        scenes[sceneTitle].videoList.push({
-          id: scenes[sceneTitle].videoList.length + 1,
-          title: videoTitle,
-          src: src,
-        });
+    const transformFolder = (folder, path) => {
+      const folderPath = `${path}/${folder.title}`;
+      const transformedFolder = {
+        id: folderPath,
+        title: folder.title,
+        isOpen: false,
+        videoList: [],
+        subFolders: []
+      };
+
+      if (folder.videos) {
+        const videosAndFolders = transformVideos(folder.videos, folderPath);
+        // Separate videos and folders based on whether an item has a src property
+        transformedFolder.videoList = videosAndFolders.filter(item => item.src);
+        transformedFolder.subFolders = videosAndFolders.filter(item => !item.src);
       }
 
-      this.sceneList = Object.values(scenes);
-    },
+      return transformedFolder;
+    };
+
+    return scenesData.map(scene => transformFolder(scene, ''));
+  },
+
+
+
+
     toggleScene(sceneId) {
-      this.sceneList = this.sceneList.map((scene) =>
-        scene.id === sceneId ? { ...scene, isOpen: !scene.isOpen } : scene
-      );
-    },
+    const toggleFolder = (folders) => {
+      return folders.map(folder => {
+        if (folder.id === sceneId) {
+          return { ...folder, isOpen: !folder.isOpen };
+        } else if (folder.subFolders && folder.subFolders.length > 0) {
+          const updatedSubFolders = toggleFolder(folder.subFolders);
+          return { ...folder, subFolders: updatedSubFolders };
+        }
+        return folder;
+      });
+    };
+    this.sceneList = toggleFolder(this.sceneList);
+  },
     onVideoChange(src) {
-      this.$emit("video-selected", src);
+      this.$emit('video-selected', src);
     },
   },
 };
@@ -124,7 +166,6 @@ h3 {
 .scene-list {
   width: 100%;
 }
-
 
 .scene-folder {
   display: flex;
