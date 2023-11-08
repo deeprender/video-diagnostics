@@ -63,7 +63,7 @@
           Pause
         </button>
         <button class="video-button" @click="toggleFullscreen">
-          <font-awesome-icon :icon="isFullscreen ? 'compress' : 'expand'" />
+          <font-awesome-icon icon="expand" />
           Fullscreen
         </button>
     </div>
