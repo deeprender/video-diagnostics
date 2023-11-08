@@ -176,11 +176,14 @@ h3 {
   cursor: pointer;
   background-color: var(--vt-c-black-soft);
   border-radius: 6px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease; /* Add box-shadow to the transition */
 }
 
 .scene-folder:hover {
   background-color: var(--vt-c-black-mute);
   color: var(--vt-c-text-dark-1);
+  transform: scale(1.03);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Example shadow effect */
 }
 
 .scene-title {

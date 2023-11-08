@@ -4,14 +4,14 @@
       <div v-show="mainVideoSrc && mainVideoLoading" class="loading-overlay">
         <div class="loading-spinner"></div>
       </div>
-      <video 
-        class="video-main" 
-        :class="{ 'fullscreen': isFullscreen }" 
-        autoplay 
-        muted 
-        ref="mainVideo" 
+      <video
+        class="video-main"
+        :class="{ 'fullscreen': isFullscreen }"
+        autoplay
+        muted
+        ref="mainVideo"
         preload="auto"
-        @loadedmetadata="videoLoaded" 
+        @loadedmetadata="videoLoaded"
         @error="videoError"
       >
         <source :src="mainVideoSrc" type="video/mp4">
@@ -20,14 +20,14 @@
         <div v-show="clippedVideoSrc && clippedVideoLoading" class="loading-overlay">
           <div class="loading-spinner"></div>
         </div>
-        <video 
-          class="video-clipped" 
-          :class="{ 'fullscreen': isFullscreen }" 
-          autoplay 
-          muted 
+        <video
+          class="video-clipped"
+          :class="{ 'fullscreen': isFullscreen }"
+          autoplay
+          muted
           preload="auto"
-          ref="clippedVideo" 
-          @loadedmetadata="videoLoaded" 
+          ref="clippedVideo"
+          @loadedmetadata="videoLoaded"
           @error="videoError"
         >
           <source :src="clippedVideoSrc" type="video/mp4">
@@ -46,10 +46,26 @@
       </label>
     </div>
     <div class="button-container">
-      <button class="video-button" @click="swapVideos">Swap Videos</button>
-      <button class="video-button" @click="resumeVideos">Resume Videos</button>
-      <button class="video-button" @click="pauseVideos">Pause Videos</button>
-      <button class="video-button" @click="toggleFullscreen">Toggle Fullscreen</button>
+        <button class="video-button" @click="swapVideos">
+          <font-awesome-icon icon="exchange-alt" />
+          Swap
+        </button>
+        <button class="video-button" @click="syncVideos">
+          <font-awesome-icon icon="step-forward" />
+          Reset
+        </button>
+        <button class="video-button" @click="resumeVideos">
+          <font-awesome-icon icon="play" />
+          Resume
+        </button>
+        <button class="video-button" @click="pauseVideos">
+          <font-awesome-icon icon="pause" />
+          Pause
+        </button>
+        <button class="video-button" @click="toggleFullscreen">
+          <font-awesome-icon :icon="isFullscreen ? 'compress' : 'expand'" />
+          Fullscreen
+        </button>
     </div>
   </div>
 </template>
@@ -79,6 +95,8 @@
       this.videoContainer.addEventListener('touchmove', this.trackLocation, false);
       this.mainVideo.addEventListener('ended', this.syncVideos, false);
       this.clippedVideo.addEventListener('ended', this.syncVideos, false);
+
+      window.addEventListener('keydown', this.handleSpacebarPress);
     },
     computed: {
       videoLabels() {
@@ -88,8 +106,8 @@
         }
       }
     },
-    methods: {
 
+    methods: {
       videoLoaded(event) {
         if (event.target.classList.contains('video-main')) {
           this.mainVideoLoading = false;
@@ -129,8 +147,8 @@
           }
           await this.syncVideos();
         } catch (error) {
-          console.error('Error when setting the video source or syncing:', error); 
-        } 
+          console.error('Error when setting the video source or syncing:', error);
+        }
       },
 
       updateVideoSource(videoElement, src) {
@@ -150,7 +168,6 @@
       },
 
       async syncVideos() {
-        console.log('syncing videos');
         this.mainVideo.currentTime = 0;
         this.clippedVideo.currentTime = 0;
 
@@ -182,6 +199,8 @@
       pauseVideos() {
         this.mainVideo.pause();
         this.clippedVideo.pause();
+
+        this.clippedVideo.currentTime = this.mainVideo.currentTime; // ensure that videos are paused on the same frame
       },
 
       resumeVideos() {
@@ -206,7 +225,6 @@
           }
         }
       },
-
       getFileName(src) {
         return src.split('/').pop();
       }
@@ -317,6 +335,7 @@
     background-color: var(--vt-c-indigo);
     color: var(--vt-c-text-dark-1);
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+    transform: scale(1.03);
   }
 
   .button-container {
@@ -327,7 +346,7 @@
     box-sizing: border-box;
     z-index: 4;
     grid-row: 3;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(5, 1fr);
   }
 
   .video-labels {
@@ -340,7 +359,6 @@
   .video-labels label {
     display: flex;
     align-items: center;
-    font-family: 'Arial', sans-serif;
     font-size: 16px;
     color: #fff;
     cursor: pointer;
@@ -356,6 +374,9 @@
     border: 2px solid #ccc;
     border-radius: 5px;
     margin-left: 10px;
+  }
+  .video-labels .video-label:hover {
+    transform: scale(1.03);
   }
 
   .video-labels input[type="radio"]:checked+.video-label {
