@@ -175,17 +175,19 @@
 
       async updateVideos() {
         try {
-          await Promise.all([
-            this.updateVideoSource(this.rightVideo.src, this.$refs.mainVideo),
-
-            this.updateVideoSource(this.leftVideo.src, this.$refs.clippedVideo)
-          ]);
+          const updates = [];
+          if (this.leftVideo && this.leftVideo.src) {
+            updates.push(this.updateVideoSource(this.leftVideo.src, this.$refs.clippedVideo));
+          }
+          if (this.rightVideo && this.rightVideo.src) {
+            updates.push(this.updateVideoSource(this.rightVideo.src, this.$refs.mainVideo));
+          }
+          await Promise.all(updates);
           this.syncVideos(); // Sync and play videos after both are loaded
         } catch (error) {
           console.error("Error loading videos:", error);
         }
       },
-
       // Updated updateVideoSource to return a Promise
       updateVideoSource(src, videoElement) {
         return new Promise((resolve, reject) => {
