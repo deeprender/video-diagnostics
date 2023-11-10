@@ -1,6 +1,7 @@
 <template>
   <div class="container">
-    <div class="video-compare-container" ref="container">
+
+    <div class="video-compare-container" ref="container" @mousedown="startSeeking">
       <div v-show="leftVideo.src && mainVideoLoading" class="loading-overlay">
         <div class="loading-spinner"></div>
       </div>
@@ -34,7 +35,20 @@
         </video>
       </div>
       <div class="split-line" ref="splitLine"></div>
+
+
+      <!-- Progress Bar -->
+      <div class="progress-container" ref="progressBar" @click="seekVideo($event)" @mousedown="startSeeking">
+        <div class="progress-bar" :style="{ width: progressBarWidth }"></div>
+      </div>
+
+
+
     </div>
+
+
+
+    <!-- Video Labels -->
     <div class="video-labels">
       <label @click="emitSetActive('left')">
         <input type="radio" name="video-selection" value="LEFT" v-model="selectedVideo" />
@@ -45,27 +59,25 @@
         <span class="video-label">RIGHT: {{ rightVideo.title }}</span>
       </label>
     </div>
+
+    <!-- Control Buttons -->
     <div class="button-container">
-        <button class="video-button" @click="swapVideos">
-          <font-awesome-icon icon="exchange-alt" />
-          Swap
-        </button>
-        <button class="video-button" @click="syncVideos">
-          <font-awesome-icon icon="step-forward" />
-          Reset
-        </button>
-        <button class="video-button" @click="resumeVideos">
-          <font-awesome-icon icon="play" />
-          Resume
-        </button>
-        <button class="video-button" @click="pauseVideos">
-          <font-awesome-icon icon="pause" />
-          Pause
-        </button>
-        <button class="video-button" @click="toggleFullscreen">
-          <font-awesome-icon icon="expand" />
-          Fullscreen
-        </button>
+      <button class="video-button" @click="swapVideos">
+        <!-- Icons and button labels -->
+        Swap
+      </button>
+      <button class="video-button" @click="syncVideos">
+        Reset
+      </button>
+      <button class="video-button" @click="resumeVideos">
+        Resume
+      </button>
+      <button class="video-button" @click="pauseVideos">
+        Pause
+      </button>
+      <button class="video-button" @click="toggleFullscreen">
+        Fullscreen
+      </button>
     </div>
   </div>
 </template>
@@ -109,6 +121,9 @@
         selectedVideo: 'LEFT',
         mainVideoLoading: true,
         clippedVideoLoading: true,
+        longestDuration: 0,
+        currentTime: 0,
+        seeking: false,
       }
     },
     mounted() {
@@ -124,10 +139,16 @@
       this.videoContainer.addEventListener('touchmove', this.trackLocation, false);
       this.mainVideo.addEventListener('ended', this.syncVideos, false);
       this.clippedVideo.addEventListener('ended', this.syncVideos, false);
+      
+      this.updateCurrentTime();
 
       window.addEventListener('keydown', this.handleSpacebarPress);
     },
     computed: {
+      progressBarWidth() {
+        return `${(this.currentTime / this.longestDuration) * 100}%`;
+      },
+
       videoLabels() {
         return {
           main: this.mainVideoSrc.split('/').pop(),
@@ -135,6 +156,7 @@
         }
       }
     },
+
 
     methods: {
       setActive(side) {
@@ -147,11 +169,59 @@
       },
 
       videoLoaded(event) {
+
+        const duration = event.target.duration;
+        if (duration > this.longestDuration) {
+          this.longestDuration = duration;
+        }
+
         if (event.target === this.$refs.mainVideo) {
           this.mainVideoLoading = false;
         } else if (event.target === this.$refs.clippedVideo) {
           this.clippedVideoLoading = false;
         }
+      },
+
+      startSeeking(event) {
+        this.seeking = true;
+        // this.seekVideo(event);
+        this.seek(event); // Call the seek method which might need to be adapted to handle events from the video elements
+
+        // Add mousemove and mouseup event listeners to the window
+        window.addEventListener('mousemove', this.seekVideo);
+        window.addEventListener('mouseup', this.stopSeeking);
+      },
+
+      seek(event) {
+        if (!this.seeking) return;
+        let seekTime;
+        if (event.type === 'mousedown' && event.currentTarget === this.$refs.container) {
+          // If seeking started on the video container itself, calculate the seek time based on the video duration and click position
+          const videoRect = this.$refs.container.getBoundingClientRect();
+          const clickX = event.clientX - videoRect.left;
+          const clickRatio = clickX / videoRect.width;
+          seekTime = clickRatio * this.longestDuration;
+        } else if (event.currentTarget === this.$refs.progressBar) {
+          // If seeking started on the progress bar, calculate as before
+          const bounds = this.$refs.progressBar.getBoundingClientRect();
+          const clickPosition = event.clientX - bounds.left;
+          seekTime = (clickPosition / bounds.width) * this.longestDuration;
+        }
+        this.$refs.mainVideo.currentTime = seekTime;
+        this.$refs.clippedVideo.currentTime = seekTime;
+        this.currentTime = seekTime;
+      },
+
+      stopSeeking() {
+        this.seeking = false;
+        // Remove the event listeners from the window
+        window.removeEventListener('mousemove', this.seekVideo);
+        window.removeEventListener('mouseup', this.stopSeeking);
+      },
+
+      updateCurrentTime() {
+        this.currentTime = Math.max(this.$refs.mainVideo.currentTime, this.$refs.clippedVideo.currentTime);
+        requestAnimationFrame(this.updateCurrentTime);
       },
 
       videoError(event) {
@@ -202,25 +272,25 @@
         });
       },
 
-
       loadVideo(videoElement, src) {
-        console.log("trying to load video")
-        const sourceElement = videoElement.querySelector('source');
-        sourceElement.src = src;
-        videoElement.load();
         return new Promise((resolve, reject) => {
-          videoElement.onloadedmetadata = resolve;
-          videoElement.onerror = reject;
+          videoElement.src = src;
+          videoElement.load();
+          videoElement.onloadeddata = () => {
+            resolve();
+            videoElement.play().catch(e => console.error('Error trying to play video:', e));
+          };
+          videoElement.onerror = () => reject("Error loading video");
         });
       },
 
       async syncVideos() {
-        this.$refs.mainVideo.currentTime = 0;
-        this.$refs.clippedVideo.currentTime = 0;
-        await Promise.all([
-          this.$refs.mainVideo.play(),
-          this.$refs.clippedVideo.play()
-        ]);
+        try {
+          await this.$refs.mainVideo.play();
+          await this.$refs.clippedVideo.play();
+        } catch (error) {
+          console.error('Error trying to play video:', error);
+        }
       },
 
       swapVideos() {
@@ -271,6 +341,11 @@
       getFileName(src) {
         return src.split('/').pop();
       }
+    },
+    destroyed() {
+      // Remove event listeners if they were added
+      window.removeEventListener('mousemove', this.seekVideo);
+      window.removeEventListener('mouseup', this.stopSeeking);
     }
   }
 </script>
@@ -310,7 +385,12 @@
     height: 99vh;
   }
 
+
+
   .video-compare-container {
+    position: relative;
+    padding-bottom: 10px;
+
     margin: auto;
     /* position: absolute; */
     display: inline-block;
@@ -322,6 +402,21 @@
     overflow: hidden;
     grid-row: 1;
   }
+  .progress-container {
+    position: absolute;
+    bottom: 0; /* Aligns the progress bar to the bottom of the video container */
+    left: 0;
+    width: 100%; /* Full width of the video container */
+    height: 10px; /* Height of the progress bar */
+    background-color: #ccc; /* Background of the unplayed portion of the progress bar */
+  }
+
+  .progress-bar {
+    height: 100%;
+    background-color: #007bff; /* Color of the played portion of the progress bar */
+    width: 0%; /* This will be controlled by Vue.js */
+  }
+
 
   .video-main {
     width: 100%;
@@ -354,11 +449,13 @@
   .split-line {
     position: absolute;
     top: 0;
-    bottom: 0;
+    bottom: 10px; 
     width: 0.5px;
     background: #fff;
     z-index: 2;
     grid-row: 1;
+    height: calc(100% - 20px); /* Adjust the height to account for the progress bar */
+
   }
 
   .video-button {
@@ -382,6 +479,7 @@
   }
 
   .button-container {
+    /* margin-top: 10px; */
     width: auto;
     display: grid;
     gap: 10px;
@@ -393,6 +491,7 @@
   }
 
   .video-labels {
+    margin-top: 10px; 
     display: flex;
     justify-content: space-between;
     padding: 0 2.5%;
