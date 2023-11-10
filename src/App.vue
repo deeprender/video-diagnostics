@@ -1,8 +1,9 @@
 <template>
   <div id="app">
     <!-- Added ref to VideoCompare for accessing its methods -->
-    <Navbar @video-selected="changeClippedVideo"></Navbar>
-    <VideoCompare ref="videoCompare" :leftVideo="leftVideo" :rightVideo="rightVideo" @set-active-video="setActiveVideo"></VideoCompare>
+    <Navbar @video-selected="changeClippedVideo" @populate-videos="onPopulateVideos"></Navbar>
+    <VideoCompare ref="videoCompare" :leftVideo="leftVideo" :rightVideo="rightVideo" @set-active-video="setActiveVideo">
+    </VideoCompare>
   </div>
 </template>
 
@@ -47,6 +48,14 @@ export default {
       }
     },
 
+    onPopulateVideos(left, right) {
+      console.log('calling onPopulateVideos')
+      this.setActiveVideo('left');
+      this.changeClippedVideo(left);
+      this.setActiveVideo('right');
+      this.changeClippedVideo(right);
+    },
+
     setActiveVideo(side) {
       console.log(side)
       this.activeVideo = side; // 'left' or 'right'
@@ -63,6 +72,7 @@ export default {
 <style scoped>
 #app {
   display: grid;
-  grid-template-columns: 1fr 3fr; /* Adjusted for a more responsive layout */
+  grid-template-columns: 1fr 3fr;
+  /* Adjusted for a more responsive layout */
 }
 </style>

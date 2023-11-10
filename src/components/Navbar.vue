@@ -4,13 +4,8 @@
       <input type="text" v-model="searchQuery" placeholder="Search videos..." />
     </div>
     <div class="scene-list">
-      <folder-item
-        v-for="folder in filteredSceneList"
-        :key="folder.id"
-        :folder="folder"
-        @video-selected="onVideoChange"
-        @toggle-folder="toggleScene"
-      />
+      <folder-item v-for="folder in filteredSceneList" :key="folder.id" :folder="folder" @video-selected="onVideoChange"
+        @toggle-folder="toggleScene" @can-populate-videos="populateVideos" />
     </div>
   </div>
 </template>
@@ -43,7 +38,7 @@ export default {
 
           const filteredVideos = scene.videoList.filter(video => regex.test(video.title));
           const filteredFolders = filterScenes(scene.subFolders, regex);
-          
+
           if (match || filteredVideos.length > 0 || filteredFolders.length > 0) {
             const filteredScene = { ...scene };
             if (!match) {
@@ -148,11 +143,23 @@ export default {
       };
       this.$emit('video-selected', video);
     },
-    
+
     extractTitleFromSrc(src) {
       return src.split('/').pop().split('.')[0]; // Extract the file name without extension
     },
 
+    populateVideos(left, right) {
+      const leftVideo = {
+        src: left,
+        title: this.extractTitleFromSrc(left)
+      }
+
+      const rightVideo = {
+        src: right,
+        title: this.extractTitleFromSrc(right)
+      }
+      this.$emit('populate-videos', leftVideo, rightVideo)
+    }
 
   },
 };
@@ -187,14 +194,16 @@ h3 {
   cursor: pointer;
   background-color: var(--vt-c-black-soft);
   border-radius: 6px;
-  transition: transform 0.2s ease, box-shadow 0.2s ease; /* Add box-shadow to the transition */
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  /* Add box-shadow to the transition */
 }
 
 .scene-folder:hover {
   background-color: var(--vt-c-black-mute);
   color: var(--vt-c-text-dark-1);
   transform: scale(1.03);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Example shadow effect */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  /* Example shadow effect */
 }
 
 .scene-title {
