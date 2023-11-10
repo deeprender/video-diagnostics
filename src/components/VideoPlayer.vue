@@ -83,6 +83,26 @@
         default: () => ({ src: '', title: '' })
       },
     },
+
+    watch: {
+      leftVideo: {
+        handler(newVal) {
+          this.mainVideoLoading = true;  // Show loading for main video
+          this.updateVideoSource(newVal.src, this.$refs.mainVideo);
+        },
+        deep: true,
+        immediate: true
+      },
+      rightVideo: {
+        handler(newVal) {
+          this.clippedVideoLoading = true;  // Show loading for clipped video
+          this.updateVideoSource(newVal.src, this.$refs.clippedVideo);
+        },
+        deep: true,
+        immediate: true
+      }
+    },
+
     data() {
       return {
         isFullscreen: false,
@@ -134,6 +154,7 @@
           this.clippedVideoLoading = false;
         }
       },
+
       videoError(event) {
         console.error('Video failed to load');
         if (event.target.classList.contains('video-main')) {
@@ -154,13 +175,21 @@
       },
 
 
-
-      async updateVideoSource(left_video, right_video) {
-        console.log("update src")
-        await this.loadVideo(this.$refs.mainVideo, left_video.src);
-        await this.loadVideo(this.$refs.clippedVideo, right_video.src);
-        await this.syncVideos(); // Resync and play from the start
+      updateVideoSource(src, videoElement) {
+        console.log("update video souroce")
+        console.log(videoElement)
+        if (src && videoElement) {
+          videoElement.src = src;
+          videoElement.load();
+        }
       },
+
+      // async updateVideoSource(left_video, right_video) {
+      //   console.log("update src")
+      //   await this.loadVideo(this.$refs.mainVideo, left_video.src);
+      //   await this.loadVideo(this.$refs.clippedVideo, right_video.src);
+      //   await this.syncVideos(); // Resync and play from the start
+      // },
 
       loadVideo(videoElement, src) {
         console.log("trying to load video")
