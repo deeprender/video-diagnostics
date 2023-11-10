@@ -256,6 +256,18 @@
           }
         }
       },
+
+    handleSpacebarPress(event) {
+      if (event.keyCode === 32) { // 32 is the key code for the spacebar
+        if (this.mainVideo.paused || this.clippedVideo.paused) {
+          this.resumeVideos();
+        } else {
+          this.pauseVideos();
+        }
+        event.preventDefault(); // Prevent the default spacebar action (scrolling)
+      }
+    },
+
       getFileName(src) {
         return src.split('/').pop();
       }
