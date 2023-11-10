@@ -2,12 +2,13 @@
   <div id="app">
     <!-- Added ref to VideoCompare for accessing its methods -->
     <Navbar @video-selected="changeClippedVideo" @populate-videos="onPopulateVideos"></Navbar>
-    <VideoCompare ref="videoCompare" :leftVideo="leftVideo" :rightVideo="rightVideo" @set-active-video="setActiveVideo">
+    <VideoCompare ref="videoCompare" :leftVideo="leftVideo" :rightVideo="rightVideo" @set-active-video="setActiveVideo" @swap-videos="swapVideos">
     </VideoCompare>
   </div>
 </template>
 
 <script>
+import { faThList } from '@fortawesome/free-solid-svg-icons';
 import Navbar from './components/Navbar.vue';
 import VideoCompare from './components/VideoPlayer.vue';
 
@@ -62,8 +63,10 @@ export default {
     },
 
     swapVideos() {
-      // Simplified swapping logic
-      [this.leftVideo, this.rightVideo] = [this.rightVideo, this.leftVideo];
+      const temp = this.rightVideo
+      this.rightVideo = this.leftVideo
+      this.leftVideo = temp
+      this.$refs.videoCompare.syncVideos(); // Sync videos after update
     },
   },
 };
