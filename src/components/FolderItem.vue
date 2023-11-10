@@ -10,7 +10,7 @@
         {{ video.title }}
       </div>
       <folder-item v-for="subFolder in folder.subFolders" :key="subFolder.id" :folder="subFolder"
-        @video-selected="onVideoChange" @toggle-folder="onToggleFolder" />
+        @video-selected="onVideoChange" @toggle-folder="onToggleFolder" @can-populate-videos="onCanPopulateVideos"/>
     </div>
   </div>
 </template>
@@ -34,11 +34,12 @@ export default {
       let result = this.canPopulateVideos(this.folder);
 
       if (result && !this.folder.isOpen) {
-        this.openSubFolders(this.folder)
         this.$emit('can-populate-videos', result[0], result[1]);
+        this.openSubFolders(this.folder)
       }
       // If the folder is being closed, recursively close all subfolders
       if (this.folder.isOpen) {
+        console.log("here")
         this.closeSubFolders(this.folder);
       }
     },
@@ -60,9 +61,11 @@ export default {
     onToggleFolder(folderId) {
       this.$emit('toggle-folder', folderId);
     },
+    onCanPopulateVideos(left, right){
+      this.$emit('can-populate-videos', left,right)
+    },
     canPopulateVideos(folder) {
       // Check if there are more than one video in the current folder and no subfolders
-      console.log("Checking", folder.id)
       if (folder.videoList.length > 1 && folder.subFolders.length === 0) {
         return [folder.videoList[0].src, folder.videoList[1].src];
       }

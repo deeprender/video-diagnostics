@@ -4,8 +4,8 @@
       <input type="text" v-model="searchQuery" placeholder="Search videos..." />
     </div>
     <div class="scene-list">
-      <folder-item v-for="folder in filteredSceneList" :key="folder.id" :folder="folder" @video-selected="onVideoChange"
-        @toggle-folder="toggleScene" @can-populate-videos="populateVideos" />
+      <folder-item v-for="folder in filteredSceneList" :key="folder.id" :folder="folder" @can-populate-videos="populateVideos" @video-selected="onVideoChange"
+        @toggle-folder="toggleScene"/>
     </div>
   </div>
 </template>
@@ -53,7 +53,6 @@ export default {
       };
 
       if (!this.searchQuery) {
-        console.log('No search query. Returning full scene list.');
         return this.sceneList;
       }
       const regex = new RegExp(this.escapeRegex(this.searchQuery), 'i');
