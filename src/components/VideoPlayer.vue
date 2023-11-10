@@ -86,17 +86,17 @@
 
     watch: {
       leftVideo: {
-        handler(newVal) {
-          this.mainVideoLoading = true;  // Show loading for main video
-          this.updateVideoSource(newVal.src, this.$refs.mainVideo);
+        handler() {
+          this.mainVideoLoading = true;
+          this.updateVideos(); // Call updateVideos instead of updating a single video
         },
         deep: true,
         immediate: true
       },
       rightVideo: {
-        handler(newVal) {
-          this.clippedVideoLoading = true;  // Show loading for clipped video
-          this.updateVideoSource(newVal.src, this.$refs.clippedVideo);
+        handler() {
+          this.clippedVideoLoading = true;
+          this.updateVideos(); // Call updateVideos instead of updating a single video
         },
         deep: true,
         immediate: true
@@ -138,7 +138,6 @@
 
     methods: {
       setActive(side) {
-        this.selectedVideo = side.toUpperCase(); // Update the selected video
         this.$emit('set-active-video', side);
       },
 
@@ -174,22 +173,33 @@
         }
       },
 
+      async updateVideos() {
+        try {
+          await Promise.all([
+            this.updateVideoSource(this.rightVideo.src, this.$refs.mainVideo),
 
-      updateVideoSource(src, videoElement) {
-        console.log("update video souroce")
-        console.log(videoElement)
-        if (src && videoElement) {
-          videoElement.src = src;
-          videoElement.load();
+            this.updateVideoSource(this.leftVideo.src, this.$refs.clippedVideo)
+          ]);
+          this.syncVideos(); // Sync and play videos after both are loaded
+        } catch (error) {
+          console.error("Error loading videos:", error);
         }
       },
 
-      // async updateVideoSource(left_video, right_video) {
-      //   console.log("update src")
-      //   await this.loadVideo(this.$refs.mainVideo, left_video.src);
-      //   await this.loadVideo(this.$refs.clippedVideo, right_video.src);
-      //   await this.syncVideos(); // Resync and play from the start
-      // },
+      // Updated updateVideoSource to return a Promise
+      updateVideoSource(src, videoElement) {
+        return new Promise((resolve, reject) => {
+          if (src && videoElement) {
+            videoElement.src = src;
+            videoElement.load();
+            videoElement.onloadedmetadata = resolve; // Resolve the promise once the video is loaded
+            videoElement.onerror = () => reject("Error loading video");
+          } else {
+            reject("No source or video element provided");
+          }
+        });
+      },
+
 
       loadVideo(videoElement, src) {
         console.log("trying to load video")
