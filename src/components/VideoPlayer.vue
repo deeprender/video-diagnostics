@@ -1,7 +1,7 @@
 <template>
   <div class="container">
     <div class="video-compare-container" ref="container">
-      <div v-show="mainVideoSrc && mainVideoLoading" class="loading-overlay">
+      <div v-show="leftVideo.src && mainVideoLoading" class="loading-overlay">
         <div class="loading-spinner"></div>
       </div>
       <video
@@ -14,10 +14,10 @@
         @loadedmetadata="videoLoaded"
         @error="videoError"
       >
-        <source :src="mainVideoSrc" type="video/mp4">
+        <source :src="leftVideo.src" type="video/mp4">
       </video>
       <div class="video-clipper" ref="clipper">
-        <div v-show="clippedVideoSrc && clippedVideoLoading" class="loading-overlay">
+        <div v-show="rightVideo.src && clippedVideoLoading" class="loading-overlay">
           <div class="loading-spinner"></div>
         </div>
         <video
@@ -30,19 +30,19 @@
           @loadedmetadata="videoLoaded"
           @error="videoError"
         >
-          <source :src="clippedVideoSrc" type="video/mp4">
+          <source :src="rightVideo.src" type="video/mp4">
         </video>
       </div>
       <div class="split-line" ref="splitLine"></div>
     </div>
-    <div class="video-labels" ref="videoLabels">
-      <label>
+    <div class="video-labels">
+      <label @click="emitSetActive('left')">
         <input type="radio" name="video-selection" value="LEFT" v-model="selectedVideo" />
-        <span class="video-label">LEFT: {{ videoLabels.clipped }}</span>
+        <span class="video-label">LEFT: {{ leftVideo.title }}</span>
       </label>
-      <label>
+      <label @click="emitSetActive('right')">
         <input type="radio" name="video-selection" value="RIGHT" v-model="selectedVideo" />
-        <span class="video-label">RIGHT: {{ videoLabels.main }}</span>
+        <span class="video-label">RIGHT: {{ rightVideo.title }}</span>
       </label>
     </div>
     <div class="button-container">
@@ -70,12 +70,21 @@
   </div>
 </template>
 
+
 <script>
   export default {
+    props: {
+      leftVideo: {
+        type: Object,
+        default: () => ({ src: '', title: '' })
+      },
+      rightVideo: {
+        type: Object,
+        default: () => ({ src: '', title: '' })
+      },
+    },
     data() {
       return {
-        clippedVideoSrc: '',
-        mainVideoSrc: '',
         isFullscreen: false,
         selectedVideo: 'LEFT',
         mainVideoLoading: true,
@@ -108,10 +117,20 @@
     },
 
     methods: {
+      setActive(side) {
+        this.selectedVideo = side.toUpperCase(); // Update the selected video
+        this.$emit('set-active-video', side);
+      },
+
+      emitSetActive(side) {
+        this.setActive(side);
+        this.$emit('active-video-changed', side); // Emitting an event when active video is changed
+      },
+
       videoLoaded(event) {
-        if (event.target.classList.contains('video-main')) {
+        if (event.target === this.$refs.mainVideo) {
           this.mainVideoLoading = false;
-        } else if (event.target.classList.contains('video-clipped')) {
+        } else if (event.target === this.$refs.clippedVideo) {
           this.clippedVideoLoading = false;
         }
       },
@@ -134,66 +153,37 @@
         }
       },
 
-      async setClippedVideoSrc(src) {
-        try {
-          if (this.selectedVideo === 'LEFT') {
-            await this.updateVideoSource(this.clippedVideo, src);
-            this.clippedVideoSrc = src;
-            this.videoLabels.clipped = this.getFileName(src);
-          } else {
-            await this.updateVideoSource(this.mainVideo, src);
-            this.mainVideoSrc = src;
-            this.videoLabels.main = this.getFileName(src);
-          }
-          await this.syncVideos();
-        } catch (error) {
-          console.error('Error when setting the video source or syncing:', error);
-        }
+
+
+      async updateVideoSource(left_video, right_video) {
+        console.log("update src")
+        await this.loadVideo(this.$refs.mainVideo, left_video.src);
+        await this.loadVideo(this.$refs.clippedVideo, right_video.src);
+        await this.syncVideos(); // Resync and play from the start
       },
 
-      updateVideoSource(videoElement, src) {
-        videoElement.pause();
-        videoElement.src = src;
+      loadVideo(videoElement, src) {
+        console.log("trying to load video")
+        const sourceElement = videoElement.querySelector('source');
+        sourceElement.src = src;
         videoElement.load();
-
-        // Return a Promise that resolves when the video is ready to play
-        return new Promise((resolve) => {
-          videoElement.onloadedmetadata = () => {
-            resolve();
-          };
-          videoElement.onerror = () => {
-            resolve(); // Resolve even on error to not block the Promise chain
-          };
+        return new Promise((resolve, reject) => {
+          videoElement.onloadedmetadata = resolve;
+          videoElement.onerror = reject;
         });
       },
 
       async syncVideos() {
-        this.mainVideo.currentTime = 0;
-        this.clippedVideo.currentTime = 0;
-
-        try {
-          await this.mainVideo.play();
-          await this.clippedVideo.play();
-        } catch (error) {
-          console.error('Error when trying to play videos:', error);
-          // Handle play error, for example by showing a user-friendly message
-        }
+        this.$refs.mainVideo.currentTime = 0;
+        this.$refs.clippedVideo.currentTime = 0;
+        await Promise.all([
+          this.$refs.mainVideo.play(),
+          this.$refs.clippedVideo.play()
+        ]);
       },
 
       swapVideos() {
-        const tempSrc = this.mainVideoSrc;
-        this.mainVideoSrc = this.clippedVideoSrc;
-        this.clippedVideoSrc = tempSrc;
-
-        // Update the video sources
-        this.updateVideoSource(this.mainVideo, this.mainVideoSrc);
-        this.updateVideoSource(this.clippedVideo, this.clippedVideoSrc);
-
-        this.videoLabels.main = this.getFileName(this.mainVideoSrc);
-        this.videoLabels.clipped = this.getFileName(this.clippedVideoSrc);
-
-        // Sync the videos
-        this.syncVideos();
+        this.$emit('swap-videos');
       },
 
       pauseVideos() {

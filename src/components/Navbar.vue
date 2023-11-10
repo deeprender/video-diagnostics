@@ -84,65 +84,76 @@ export default {
 
 
     transformScenesData(scenesData) {
-    const transformVideos = (videos, path) => {
-      return videos.flatMap(video => {
-        const videoPath = `${path}/${video.title}`;
-        if (video.videos) {
-          // If the video has nested videos, treat it as a folder and recursively transform
-          return transformFolder(video, videoPath);
-        }
-        // If the video is a leaf node, transform it into the required format
-        return {
-          id: video.filename,
-          title: video.title,
-          src: `/api/${video.path}`
-        };
-      });
-    };
-
-    const transformFolder = (folder, path) => {
-      const folderPath = `${path}/${folder.title}`;
-      const transformedFolder = {
-        id: folderPath,
-        title: folder.title,
-        isOpen: false,
-        videoList: [],
-        subFolders: []
+      const transformVideos = (videos, path) => {
+        return videos.flatMap(video => {
+          const videoPath = `${path}/${video.title}`;
+          if (video.videos) {
+            // If the video has nested videos, treat it as a folder and recursively transform
+            return transformFolder(video, videoPath);
+          }
+          // If the video is a leaf node, transform it into the required format
+          return {
+            id: video.filename,
+            title: video.title,
+            src: `/api/${video.path}`
+          };
+        });
       };
 
-      if (folder.videos) {
-        const videosAndFolders = transformVideos(folder.videos, folderPath);
-        // Separate videos and folders based on whether an item has a src property
-        transformedFolder.videoList = videosAndFolders.filter(item => item.src);
-        transformedFolder.subFolders = videosAndFolders.filter(item => !item.src);
-      }
+      const transformFolder = (folder, path) => {
+        const folderPath = `${path}/${folder.title}`;
+        const transformedFolder = {
+          id: folderPath,
+          title: folder.title,
+          isOpen: false,
+          videoList: [],
+          subFolders: []
+        };
 
-      return transformedFolder;
-    };
+        if (folder.videos) {
+          const videosAndFolders = transformVideos(folder.videos, folderPath);
+          // Separate videos and folders based on whether an item has a src property
+          transformedFolder.videoList = videosAndFolders.filter(item => item.src);
+          transformedFolder.subFolders = videosAndFolders.filter(item => !item.src);
+        }
 
-    return scenesData.map(scene => transformFolder(scene, ''));
-  },
+        return transformedFolder;
+      };
+
+      return scenesData.map(scene => transformFolder(scene, ''));
+    },
 
 
 
 
     toggleScene(sceneId) {
-    const toggleFolder = (folders) => {
-      return folders.map(folder => {
-        if (folder.id === sceneId) {
-          return { ...folder, isOpen: !folder.isOpen };
-        } else if (folder.subFolders && folder.subFolders.length > 0) {
-          const updatedSubFolders = toggleFolder(folder.subFolders);
-          return { ...folder, subFolders: updatedSubFolders };
-        }
-        return folder;
-      });
-    };
-    this.sceneList = toggleFolder(this.sceneList);
-  },
-    onVideoChange(src) {
-      this.$emit('video-selected', src);
+      const toggleFolder = (folders) => {
+        return folders.map(folder => {
+          if (folder.id === sceneId) {
+            return { ...folder, isOpen: !folder.isOpen };
+          } else if (folder.subFolders && folder.subFolders.length > 0) {
+            const updatedSubFolders = toggleFolder(folder.subFolders);
+            return { ...folder, subFolders: updatedSubFolders };
+          }
+          return folder;
+        });
+      };
+      this.sceneList = toggleFolder(this.sceneList);
     },
+
+    onVideoChange(videoSrc) {
+      const video = {
+        src: videoSrc,
+        title: this.extractTitleFromSrc(videoSrc)
+      };
+      this.$emit('video-selected', video);
+    },
+    
+    extractTitleFromSrc(src) {
+      return src.split('/').pop().split('.')[0]; // Extract the file name without extension
+    },
+
+
   },
 };
 </script>

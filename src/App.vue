@@ -1,7 +1,8 @@
 <template>
   <div id="app">
+    <!-- Added ref to VideoCompare for accessing its methods -->
     <Navbar @video-selected="changeClippedVideo"></Navbar>
-    <VideoCompare ref="videoCompare"></VideoCompare>
+    <VideoCompare ref="videoCompare" :leftVideo="leftVideo" :rightVideo="rightVideo" @set-active-video="setActiveVideo"></VideoCompare>
   </div>
 </template>
 
@@ -17,21 +18,51 @@ export default {
   },
   data() {
     return {
-      selectedVideo: '',
+      leftVideo: { src: '', title: '' },
+      rightVideo: { src: '', title: '' },
+      activeVideo: 'left', // New data property to track the active video
     }
   },
+  watch: {
+    leftVideo(newVal, oldVal) {
+      console.log('Left video changed:', newVal); // Consider replacing with more robust logging for production
+    },
+    rightVideo(newVal, oldVal) {
+      console.log('Right video changed:', newVal); // Consider replacing with more robust logging for production
+    },
+  },
+
   methods: {
-    changeClippedVideo(src) {
-      this.$refs.videoCompare.setClippedVideoSrc(src);
+    changeClippedVideo(video) {
+      if (video && video.src && video.title) {
+        console.log(this.activeVideo)
+        if (this.activeVideo === 'left') {
+          this.leftVideo = video;
+        } else {
+          this.rightVideo = video;
+        }
+        this.$refs.videoCompare.syncVideos(); // Sync videos after update
+      } else {
+        console.error('Invalid video data received:', video);
+      }
+    },
+
+    setActiveVideo(side) {
+      console.log(side)
+      this.activeVideo = side; // 'left' or 'right'
+    },
+
+    swapVideos() {
+      // Simplified swapping logic
+      [this.leftVideo, this.rightVideo] = [this.rightVideo, this.leftVideo];
     },
   },
 };
 </script>
 
-
 <style scoped>
-#app{
+#app {
   display: grid;
-  grid-template-columns: minmax(auto, 20vw) auto;
+  grid-template-columns: 1fr 3fr; /* Adjusted for a more responsive layout */
 }
 </style>
