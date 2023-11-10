@@ -413,7 +413,7 @@
 
   .progress-bar {
     height: 100%;
-    background-color: #007bff; /* Color of the played portion of the progress bar */
+    background-color: var(--vt-c-indigo);
     width: 0%; /* This will be controlled by Vue.js */
   }
 

@@ -34,7 +34,6 @@ export default {
       const filterScenes = (scenes, regex) => {
         return scenes.reduce((acc, scene) => {
           const match = regex.test(scene.title);
-          console.log('Checking scene', scene.title, 'Match:', match);
 
           const filteredVideos = scene.videoList.filter(video => regex.test(video.title));
           const filteredFolders = filterScenes(scene.subFolders, regex);
@@ -42,7 +41,6 @@ export default {
           if (match || filteredVideos.length > 0 || filteredFolders.length > 0) {
             const filteredScene = { ...scene };
             if (!match) {
-              console.log('Folder does not match. Filtering descendants.');
               filteredScene.videoList = filteredVideos;
               filteredScene.subFolders = filteredFolders;
             }
@@ -56,7 +54,6 @@ export default {
         return this.sceneList;
       }
       const regex = new RegExp(this.escapeRegex(this.searchQuery), 'i');
-      console.log('Filtering with regex:', regex);
       return filterScenes(this.sceneList, regex);
     }
   },
@@ -200,9 +197,7 @@ h3 {
 .scene-folder:hover {
   background-color: var(--vt-c-black-mute);
   color: var(--vt-c-text-dark-1);
-  transform: scale(1.03);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-  /* Example shadow effect */
 }
 
 .scene-title {

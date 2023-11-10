@@ -25,19 +25,10 @@ export default {
       activeVideo: 'left', // New data property to track the active video
     }
   },
-  watch: {
-    leftVideo(newVal, oldVal) {
-      console.log('Left video changed:', newVal); // Consider replacing with more robust logging for production
-    },
-    rightVideo(newVal, oldVal) {
-      console.log('Right video changed:', newVal); // Consider replacing with more robust logging for production
-    },
-  },
 
   methods: {
     changeClippedVideo(video) {
       if (video && video.src && video.title) {
-        console.log(this.activeVideo)
         if (this.activeVideo === 'left') {
           this.leftVideo = video;
         } else {
@@ -50,7 +41,6 @@ export default {
     },
 
     onPopulateVideos(left, right) {
-      console.log('calling onPopulateVideos')
       this.setActiveVideo('left');
       this.changeClippedVideo(left);
       this.setActiveVideo('right');
@@ -58,7 +48,6 @@ export default {
     },
 
     setActiveVideo(side) {
-      console.log(side)
       this.activeVideo = side; // 'left' or 'right'
     },
 
