@@ -1,12 +1,14 @@
 <template>
   <div id="app">
     <!-- Added ref to VideoCompare for accessing its methods -->
-    <Navbar @video-selected="changeClippedVideo"></Navbar>
-    <VideoCompare ref="videoCompare" :leftVideo="leftVideo" :rightVideo="rightVideo" @set-active-video="setActiveVideo"></VideoCompare>
+    <Navbar @video-selected="changeClippedVideo" @populate-videos="onPopulateVideos"></Navbar>
+    <VideoCompare ref="videoCompare" :leftVideo="leftVideo" :rightVideo="rightVideo" @set-active-video="setActiveVideo" @swap-videos="swapVideos">
+    </VideoCompare>
   </div>
 </template>
 
 <script>
+import { faThList } from '@fortawesome/free-solid-svg-icons';
 import Navbar from './components/Navbar.vue';
 import VideoCompare from './components/VideoPlayer.vue';
 
@@ -47,14 +49,24 @@ export default {
       }
     },
 
+    onPopulateVideos(left, right) {
+      console.log('calling onPopulateVideos')
+      this.setActiveVideo('left');
+      this.changeClippedVideo(left);
+      this.setActiveVideo('right');
+      this.changeClippedVideo(right);
+    },
+
     setActiveVideo(side) {
       console.log(side)
       this.activeVideo = side; // 'left' or 'right'
     },
 
     swapVideos() {
-      // Simplified swapping logic
-      [this.leftVideo, this.rightVideo] = [this.rightVideo, this.leftVideo];
+      const temp = this.rightVideo
+      this.rightVideo = this.leftVideo
+      this.leftVideo = temp
+      this.$refs.videoCompare.syncVideos(); // Sync videos after update
     },
   },
 };
@@ -63,6 +75,7 @@ export default {
 <style scoped>
 #app {
   display: grid;
-  grid-template-columns: 1fr 3fr; /* Adjusted for a more responsive layout */
+  grid-template-columns: 1fr 3fr;
+  /* Adjusted for a more responsive layout */
 }
 </style>
