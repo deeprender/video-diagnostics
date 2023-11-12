@@ -37,7 +37,7 @@
       <div class="split-line" ref="splitLine"></div>
       
       <!-- Progress Bar -->
-      <div class="progress-container" ref="progressBar" @mousemove="updateLinePosition($event)" @click="seek($event)" @mousedown="startSeeking">
+      <div class="progress-container" ref="progressBar" @mousemove="updateLinePosition($event)" @click="seek($event)">
         <div class="progress-bar" :style="{ width: progressBarWidth }"></div>
         <div class="progress-line" :style="{ left: linePosition + '%' }"></div> 
       </div>
@@ -207,27 +207,32 @@
         window.addEventListener('mouseup', this.stopSeeking);
       },
 
+
       seek(event) {
         if (!this.seeking) return;
 
         const bounds = this.$refs.progressBar.getBoundingClientRect();
         let seekTime;
+        let position = 0;
 
-        if (event.currentTarget === this.$refs.progressBar) {
+        if (event.currentTarget === this.$refs.progressBar || event.type === 'mousemove') {
           const clickPosition = event.clientX - bounds.left;
           seekTime = (clickPosition / bounds.width) * this.longestDuration;
-          this.linePosition = (clickPosition / bounds.width) * 100; 
-        } else if (event.type === 'mousedown' && event.currentTarget === this.$refs.container) {
+          position = (clickPosition / bounds.width) * 100;
+        } else {
+          // Handle seeking logic when dragging on the video itself
           const videoRect = this.$refs.container.getBoundingClientRect();
           const clickX = event.clientX - videoRect.left;
           const clickRatio = clickX / videoRect.width;
           seekTime = clickRatio * this.longestDuration;
-          this.linePosition = clickRatio * 100; 
+          position = clickRatio * 100;
         }
 
+        // Update the video's current time and the line position
         this.$refs.mainVideo.currentTime = seekTime;
         this.$refs.clippedVideo.currentTime = seekTime;
         this.currentTime = seekTime;
+        this.linePosition = position;
       },
 
       stopSeeking() {
