@@ -16,6 +16,9 @@
         @error="videoError"
       >
         <source :src="leftVideo.src" type="video/mp4">
+        <div v-show="mainVideoLoading" class="loading-overlay">
+          <div class="loading-spinner"></div>
+        </div>
       </video>
       <div class="video-clipper" ref="clipper">
         <div v-show="rightVideo.src && clippedVideoLoading" class="loading-overlay">
@@ -32,6 +35,10 @@
           @error="videoError"
         >
           <source :src="rightVideo.src" type="video/mp4">
+          <div v-show="clippedVideoLoading" class="loading-overlay">
+            <div class="loading-spinner"></div>
+          </div>
+
         </video>
       </div>
       <div class="split-line" ref="splitLine"></div>
@@ -99,24 +106,19 @@
         default: () => ({ src: '', title: '' })
       },
     },
-
     watch: {
-      leftVideo: {
-        handler() {
+      'leftVideo.src': function(newSrc, oldSrc) {
+        if (newSrc !== oldSrc) {
           this.mainVideoLoading = true;
-          this.updateVideos(); 
-        },
-        deep: true,
-        immediate: true
+          this.loadVideo(this.$refs.mainVideo, newSrc);
+        }
       },
-      rightVideo: {
-        handler() {
+      'rightVideo.src': function(newSrc, oldSrc) {
+        if (newSrc !== oldSrc) {
           this.clippedVideoLoading = true;
-          this.updateVideos(); 
-        },
-        deep: true,
-        immediate: true
-      }
+          this.loadVideo(this.$refs.clippedVideo, newSrc);
+        }
+      },
     },
 
     data() {
@@ -185,7 +187,6 @@
       },
 
       videoLoaded(event) {
-
         const duration = event.target.duration;
         if (duration > this.longestDuration) {
           this.longestDuration = duration;
@@ -195,6 +196,26 @@
           this.mainVideoLoading = false;
         } else if (event.target === this.$refs.clippedVideo) {
           this.clippedVideoLoading = false;
+        }
+        this.syncAndPlayVideos();
+      },
+
+      syncAndPlayVideos() {
+        const currentTime = Math.min(this.$refs.mainVideo.currentTime, this.$refs.clippedVideo.currentTime);
+        this.$refs.mainVideo.currentTime = currentTime;
+        this.$refs.clippedVideo.currentTime = currentTime;
+
+        // Play both videos
+        this.playVideo(this.$refs.mainVideo);
+        this.playVideo(this.$refs.clippedVideo);
+      },
+      
+      async playVideo(videoElement) {
+        try {
+          await videoElement.play();
+        } catch (error) {
+          console.error('Error trying to play video:', error);
+          // Handle specific errors here, e.g., by retrying to play the video
         }
       },
 
@@ -286,10 +307,10 @@
           // Load and cache videos based on the update flags
           const updates = [];
           if (updateMainVideo) {
-            updates.push(this.updateVideoSource(this.leftVideo.src, this.$refs.mainVideo));
+            updates.push(this.updateVideoSource(this.leftVideo.src, this.$refs.clippedVideo, true));
           }
           if (updateClippedVideo) {
-            updates.push(this.updateVideoSource(this.rightVideo.src, this.$refs.clippedVideo));
+            updates.push(this.updateVideoSource(this.rightVideo.src, this.$refs.mainVideo, false));
           }
 
           await Promise.all(updates);
@@ -298,7 +319,7 @@
           console.error("Error loading videos:", error);
         }
       },
-      async updateVideoSource(src, videoElement) {
+      async updateVideoSource(src, videoElement, isLeftVideo) {
         const cachedVideo = await this.getCachedVideo(src);
         if (cachedVideo) {
           videoElement.src = cachedVideo;
@@ -309,6 +330,11 @@
           this.cacheVideo(src, blob);
           videoElement.src = videoURL;
         }
+        if (isLeftVideo) {
+          this.mainVideoLoading = false;
+        } else {
+          this.clippedVideoLoading = false;
+        }        
       },
 
       async openDB() {
