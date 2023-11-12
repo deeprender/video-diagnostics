@@ -213,9 +213,9 @@
       async playVideo(videoElement) {
         try {
           await videoElement.play();
+          this.isPlaying = true;
         } catch (error) {
           console.error('Error trying to play video:', error);
-          // Handle specific errors here, e.g., by retrying to play the video
         }
       },
 
