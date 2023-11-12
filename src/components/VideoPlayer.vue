@@ -414,12 +414,10 @@
         this.$emit('swap-videos');
       },
 
-      pauseVideos() {
-        this.mainVideo.pause();
-        this.clippedVideo.pause();
+      async pauseVideos() {
+        await this.mainVideo.pause();   
+        await this.clippedVideo.pause();
         this.isPlaying = false;
-
-        this.clippedVideo.currentTime = this.mainVideo.currentTime; // ensure that videos are paused on the same frame
       },
 
       resumeVideos() {
@@ -428,11 +426,11 @@
         this.isPlaying = true;
 
       },
-      togglePlayPause() {
+      async togglePlayPause() {
         if (this.isPlaying) {
-          this.pauseVideos();
+          await this.pauseVideos();
         } else {
-          this.resumeVideos();
+          await this.resumeVideos();
         }
       },
       toggleFullscreen() {
