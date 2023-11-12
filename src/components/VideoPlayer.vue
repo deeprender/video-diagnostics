@@ -263,15 +263,32 @@
 
       async updateVideos() {
         try {
+          let updateMainVideo = false;
+          let updateClippedVideo = false;
+
+          // Check if the left video source has changed
+          if (this.leftVideo.src !== this.lastLeftVideoSrc) {
+            updateMainVideo = true;
+            this.lastLeftVideoSrc = this.leftVideo.src;
+          }
+
+          // Check if the right video source has changed
+          if (this.rightVideo.src !== this.lastRightVideoSrc) {
+            updateClippedVideo = true;
+            this.lastRightVideoSrc = this.rightVideo.src;
+          }
+
+          // Load and cache videos based on the update flags
           const updates = [];
-          if (this.leftVideo && this.leftVideo.src) {
-            updates.push(this.updateVideoSource(this.leftVideo.src, this.$refs.clippedVideo));
+          if (updateMainVideo) {
+            updates.push(this.updateVideoSource(this.leftVideo.src, this.$refs.mainVideo));
           }
-          if (this.rightVideo && this.rightVideo.src) {
-            updates.push(this.updateVideoSource(this.rightVideo.src, this.$refs.mainVideo));
+          if (updateClippedVideo) {
+            updates.push(this.updateVideoSource(this.rightVideo.src, this.$refs.clippedVideo));
           }
+
           await Promise.all(updates);
-          this.syncVideos(); // Sync and play videos after both are loaded
+          this.syncVideos(); // Sync and play videos after updates
         } catch (error) {
           console.error("Error loading videos:", error);
         }
