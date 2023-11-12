@@ -39,7 +39,6 @@ export default {
       }
       // If the folder is being closed, recursively close all subfolders
       if (this.folder.isOpen) {
-        console.log("here")
         this.closeSubFolders(this.folder);
       }
     },

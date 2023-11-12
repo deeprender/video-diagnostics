@@ -37,9 +37,11 @@
       <div class="split-line" ref="splitLine"></div>
       
       <!-- Progress Bar -->
-      <div class="progress-container" ref="progressBar" @click="seek($event)" @mousedown="startSeeking">
+      <div class="progress-container" ref="progressBar" @mousemove="updateLinePosition($event)" @click="seek($event)" @mousedown="startSeeking">
         <div class="progress-bar" :style="{ width: progressBarWidth }"></div>
+        <div class="progress-line" :style="{ left: linePosition + '%' }"></div> 
       </div>
+
 
     </div>
 
@@ -126,9 +128,14 @@
         longestDuration: 0,
         currentTime: 0,
         seeking: false,
+        linePosition: 0, // Initial line position
+        indexedDB: null, // Database connection
+        lastLeftVideoSrc: '',
+        lastRightVideoSrc: '',
+
       }
     },
-    mounted() {
+    async mounted() {
       this.trackLocation = this.trackLocation.bind(this);
       this.videoContainer = this.$refs.container;
       this.videoClipper = this.$refs.clipper;
@@ -142,7 +149,8 @@
       this.mainVideo.addEventListener('ended', this.syncVideos, false);
       this.clippedVideo.addEventListener('ended', this.syncVideos, false);
       
-      this.updateCurrentTime();
+      await this.updateCurrentTime();
+      this.db = await this.openDB();
 
       window.addEventListener('keydown', this.handleSpacebarPress);
     },
@@ -170,6 +178,12 @@
         this.$emit('active-video-changed', side); // Emitting an event when active video is changed
       },
 
+      updateLinePosition(event) {
+        const bounds = this.$refs.progressBar.getBoundingClientRect();
+        const position = (event.clientX - bounds.left) / bounds.width * 100;
+        this.linePosition = position;
+      },
+
       videoLoaded(event) {
 
         const duration = event.target.duration;
@@ -195,19 +209,22 @@
 
       seek(event) {
         if (!this.seeking) return;
+
+        const bounds = this.$refs.progressBar.getBoundingClientRect();
         let seekTime;
-        if (event.type === 'mousedown' && event.currentTarget === this.$refs.container) {
-          // If seeking started on the video container itself, calculate the seek time based on the video duration and click position
+
+        if (event.currentTarget === this.$refs.progressBar) {
+          const clickPosition = event.clientX - bounds.left;
+          seekTime = (clickPosition / bounds.width) * this.longestDuration;
+          this.linePosition = (clickPosition / bounds.width) * 100; 
+        } else if (event.type === 'mousedown' && event.currentTarget === this.$refs.container) {
           const videoRect = this.$refs.container.getBoundingClientRect();
           const clickX = event.clientX - videoRect.left;
           const clickRatio = clickX / videoRect.width;
           seekTime = clickRatio * this.longestDuration;
-        } else if (event.currentTarget === this.$refs.progressBar) {
-          // If seeking started on the progress bar, calculate as before
-          const bounds = this.$refs.progressBar.getBoundingClientRect();
-          const clickPosition = event.clientX - bounds.left;
-          seekTime = (clickPosition / bounds.width) * this.longestDuration;
+          this.linePosition = clickRatio * 100; 
         }
+
         this.$refs.mainVideo.currentTime = seekTime;
         this.$refs.clippedVideo.currentTime = seekTime;
         this.currentTime = seekTime;
@@ -259,17 +276,55 @@
           console.error("Error loading videos:", error);
         }
       },
-      // Updated updateVideoSource to return a Promise
-      updateVideoSource(src, videoElement) {
+      async updateVideoSource(src, videoElement) {
+        const cachedVideo = await this.getCachedVideo(src);
+        if (cachedVideo) {
+          videoElement.src = cachedVideo;
+        } else {
+          const response = await fetch(src);
+          const blob = await response.blob();
+          const videoURL = URL.createObjectURL(blob);
+          this.cacheVideo(src, blob);
+          videoElement.src = videoURL;
+        }
+      },
+
+      async openDB() {
         return new Promise((resolve, reject) => {
-          if (src && videoElement) {
-            videoElement.src = src;
-            videoElement.load();
-            videoElement.onloadedmetadata = resolve; // Resolve the promise once the video is loaded
-            videoElement.onerror = () => reject("Error loading video");
-          } else {
-            reject("No source or video element provided");
-          }
+          const request = indexedDB.open('VideoCacheDB', 1);
+          request.onupgradeneeded = event => {
+            const db = event.target.result;
+            if (!db.objectStoreNames.contains('videos')) {
+              db.createObjectStore('videos');
+            }
+          };
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error);
+        });
+      },
+
+      async cacheVideo(src, blob) {
+        console.log("caching video")
+        const transaction = this.db.transaction(['videos'], 'readwrite');
+        const store = transaction.objectStore('videos');
+        store.put(blob, src);
+      },
+
+      async getCachedVideo(src) {
+        console.log("getting cached video")
+
+        const transaction = this.db.transaction(['videos'], 'readonly');
+        const store = transaction.objectStore('videos');
+        const request = store.get(src);
+        return new Promise((resolve, reject) => {
+          request.onsuccess = () => {
+            if (request.result) {
+              resolve(URL.createObjectURL(request.result));
+            } else {
+              resolve(null);
+            }
+          };
+          request.onerror = () => reject(request.error);
         });
       },
 
@@ -418,12 +473,23 @@
   }
   .progress-container {
     position: absolute;
-    bottom: 0; /* Aligns the progress bar to the bottom of the video container */
+    bottom: 0;
     left: 0;
-    width: 100%; /* Full width of the video container */
-    height: 10px; /* Height of the progress bar */
-    background-color: #ccc; /* Background of the unplayed portion of the progress bar */
+    width: 100%;
+    height: 10px;
+    background-color: #ccc;
+    z-index: 3; /* Updated Z-index to be above the video */
   }
+
+  .progress-line {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 2px; /* Width of the line */
+    background-color: #ff0000; /* Color of the line */
+    z-index: 4; /* Ensure it's above the progress bar */
+  }
+
 
   .progress-bar {
     height: 100%;
