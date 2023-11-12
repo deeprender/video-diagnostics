@@ -46,7 +46,7 @@
       <!-- Progress Bar -->
       <div class="progress-container" ref="progressBar" @mousemove="updateLinePosition($event)" @click="seek($event)">
         <div class="progress-bar" :style="{ width: progressBarWidth }"></div>
-        <div class="progress-line" :style="{ left: linePosition + '%' }"></div> 
+        <!-- <div class="progress-line" :style="{ left: linePosition + '%' }"></div>  -->
       </div>
 
 
@@ -148,6 +148,7 @@
       this.videoContainer.addEventListener('touchmove', this.trackLocation, false);
       this.mainVideo.addEventListener('ended', this.syncVideos, false);
       this.clippedVideo.addEventListener('ended', this.syncVideos, false);
+      window.addEventListener('keydown', this.handleArrowKeyPress);
       
       await this.updateCurrentTime();
       this.db = await this.openDB();
@@ -178,6 +179,7 @@
         this.$emit('active-video-changed', side); // Emitting an event when active video is changed
       },
 
+      // part of progress bar line which is commented out
       updateLinePosition(event) {
         const bounds = this.$refs.progressBar.getBoundingClientRect();
         const position = (event.clientX - bounds.left) / bounds.width * 100;
@@ -457,7 +459,16 @@
           event.preventDefault(); // Prevent the default spacebar action (scrolling)
         }
       },
-
+      handleArrowKeyPress(event) {
+        const step = 0.5; // Time to seek in seconds
+        if (event.keyCode === 39) { // 39 is the key code for the right arrow
+          this.$refs.mainVideo.currentTime = Math.min(this.$refs.mainVideo.currentTime + step, this.$refs.mainVideo.duration);
+          this.$refs.clippedVideo.currentTime = Math.min(this.$refs.clippedVideo.currentTime + step, this.$refs.clippedVideo.duration);
+        } else if (event.keyCode === 37) { // 37 is the key code for the left arrow
+          this.$refs.mainVideo.currentTime = Math.max(0, this.$refs.mainVideo.currentTime - step);
+          this.$refs.clippedVideo.currentTime = Math.max(0, this.$refs.clippedVideo.currentTime - step);
+        }
+      },
       getFileName(src) {
         return src.split('/').pop();
       }
@@ -466,6 +477,8 @@
       // Remove event listeners if they were added
       window.removeEventListener('mousemove', this.seek);
       window.removeEventListener('mouseup', this.stopSeeking);
+      window.removeEventListener('keydown', this.handleArrowKeyPress);
+      window.removeEventListener('keydown', this.handleSpacebarPress);
     }
   }
 </script>
@@ -585,7 +598,7 @@
     background: #fff;
     z-index: 2;
     grid-row: 1;
-    height: calc(100% - 20px); /* Adjust the height to account for the progress bar */
+    height: calc(100% - 10px); /* Adjust the height to account for the progress bar */
 
   }
 
