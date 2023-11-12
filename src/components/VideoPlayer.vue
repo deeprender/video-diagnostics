@@ -76,14 +76,11 @@
           <font-awesome-icon icon="step-forward" />
           Reset
         </button>
-        <button class="video-button" @click="resumeVideos">
-          <font-awesome-icon icon="play" />
-          Resume
+        <button class="video-button" @click="togglePlayPause">
+          <font-awesome-icon :icon="isPlaying ? 'pause' : 'play'" />
+          {{ isPlaying ? 'Pause' : 'Play' }}
         </button>
-        <button class="video-button" @click="pauseVideos">
-          <font-awesome-icon icon="pause" />
-          Pause
-        </button>
+
         <button class="video-button" @click="toggleFullscreen">
           <font-awesome-icon icon="expand" />
           Fullscreen
@@ -134,6 +131,7 @@
         indexedDB: null, // Database connection
         lastLeftVideoSrc: '',
         lastRightVideoSrc: '',
+        isPlaying: false,
 
       }
     },
@@ -417,6 +415,7 @@
       pauseVideos() {
         this.mainVideo.pause();
         this.clippedVideo.pause();
+        this.isPlaying = false;
 
         this.clippedVideo.currentTime = this.mainVideo.currentTime; // ensure that videos are paused on the same frame
       },
@@ -424,8 +423,16 @@
       resumeVideos() {
         this.mainVideo.play();
         this.clippedVideo.play();
-      },
+        this.isPlaying = true;
 
+      },
+      togglePlayPause() {
+        if (this.isPlaying) {
+          this.pauseVideos();
+        } else {
+          this.resumeVideos();
+        }
+      },
       toggleFullscreen() {
         this.isFullscreen = !this.isFullscreen;
         if (document.fullscreenElement || document.webkitFullscreenElement) {
@@ -444,16 +451,12 @@
         }
       },
 
-    handleSpacebarPress(event) {
-      if (event.keyCode === 32) { // 32 is the key code for the spacebar
-        if (this.mainVideo.paused || this.clippedVideo.paused) {
-          this.resumeVideos();
-        } else {
-          this.pauseVideos();
+      handleSpacebarPress(event) {
+        if (event.keyCode === 32) { // 32 is the key code for the spacebar
+          this.togglePlayPause();
+          event.preventDefault(); // Prevent the default spacebar action (scrolling)
         }
-        event.preventDefault(); // Prevent the default spacebar action (scrolling)
-      }
-    },
+      },
 
       getFileName(src) {
         return src.split('/').pop();
@@ -615,7 +618,7 @@
     box-sizing: border-box;
     z-index: 4;
     grid-row: 3;
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(4, 1fr);
   }
 
   .video-labels {
