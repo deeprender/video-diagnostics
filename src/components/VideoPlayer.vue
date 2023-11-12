@@ -35,14 +35,11 @@
         </video>
       </div>
       <div class="split-line" ref="splitLine"></div>
-
-
+      
       <!-- Progress Bar -->
-      <div class="progress-container" ref="progressBar" @click="seekVideo($event)" @mousedown="startSeeking">
+      <div class="progress-container" ref="progressBar" @click="seek($event)" @mousedown="startSeeking">
         <div class="progress-bar" :style="{ width: progressBarWidth }"></div>
       </div>
-
-
 
     </div>
 
@@ -63,21 +60,26 @@
     <!-- Control Buttons -->
     <div class="button-container">
       <button class="video-button" @click="swapVideos">
-        <!-- Icons and button labels -->
-        Swap
-      </button>
-      <button class="video-button" @click="syncVideos">
-        Reset
-      </button>
-      <button class="video-button" @click="resumeVideos">
-        Resume
-      </button>
-      <button class="video-button" @click="pauseVideos">
-        Pause
-      </button>
-      <button class="video-button" @click="toggleFullscreen">
-        Fullscreen
-      </button>
+          <font-awesome-icon icon="exchange-alt" />
+          Swap
+        </button>
+        <button class="video-button" @click="resetVideos">
+          <font-awesome-icon icon="step-forward" />
+          Reset
+        </button>
+        <button class="video-button" @click="resumeVideos">
+          <font-awesome-icon icon="play" />
+          Resume
+        </button>
+        <button class="video-button" @click="pauseVideos">
+          <font-awesome-icon icon="pause" />
+          Pause
+        </button>
+        <button class="video-button" @click="toggleFullscreen">
+          <font-awesome-icon icon="expand" />
+          Fullscreen
+        </button>        
+     
     </div>
   </div>
 </template>
@@ -100,7 +102,7 @@
       leftVideo: {
         handler() {
           this.mainVideoLoading = true;
-          this.updateVideos(); // Call updateVideos instead of updating a single video
+          this.updateVideos(); 
         },
         deep: true,
         immediate: true
@@ -108,7 +110,7 @@
       rightVideo: {
         handler() {
           this.clippedVideoLoading = true;
-          this.updateVideos(); // Call updateVideos instead of updating a single video
+          this.updateVideos(); 
         },
         deep: true,
         immediate: true
@@ -184,11 +186,10 @@
 
       startSeeking(event) {
         this.seeking = true;
-        // this.seekVideo(event);
-        this.seek(event); // Call the seek method which might need to be adapted to handle events from the video elements
+        this.seek(event); 
 
         // Add mousemove and mouseup event listeners to the window
-        window.addEventListener('mousemove', this.seekVideo);
+        window.addEventListener('mousemove', this.seek);
         window.addEventListener('mouseup', this.stopSeeking);
       },
 
@@ -215,7 +216,7 @@
       stopSeeking() {
         this.seeking = false;
         // Remove the event listeners from the window
-        window.removeEventListener('mousemove', this.seekVideo);
+        window.removeEventListener('mousemove', this.seek);
         window.removeEventListener('mouseup', this.stopSeeking);
       },
 
@@ -286,11 +287,24 @@
 
       async syncVideos() {
         try {
-          await this.$refs.mainVideo.play();
-          await this.$refs.clippedVideo.play();
+
+          await Promise.all([
+            this.$refs.mainVideo.play(),
+            this.$refs.clippedVideo.play()
+          ])
+
         } catch (error) {
           console.error('Error trying to play video:', error);
         }
+      },
+
+      async resetVideos() {
+        this.$refs.mainVideo.currentTime = 0;
+        this.$refs.clippedVideo.currentTime = 0;
+        await Promise.all([
+          this.$refs.mainVideo.play(),
+          this.$refs.clippedVideo.play()
+        ]);
       },
 
       swapVideos() {
@@ -344,7 +358,7 @@
     },
     destroyed() {
       // Remove event listeners if they were added
-      window.removeEventListener('mousemove', this.seekVideo);
+      window.removeEventListener('mousemove', this.seek);
       window.removeEventListener('mouseup', this.stopSeeking);
     }
   }
