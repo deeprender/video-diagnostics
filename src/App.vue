@@ -8,7 +8,6 @@
 </template>
 
 <script>
-import { faThList } from '@fortawesome/free-solid-svg-icons';
 import Navbar from './components/Navbar.vue';
 import VideoCompare from './components/VideoPlayer.vue';
 
@@ -22,7 +21,7 @@ export default {
     return {
       leftVideo: { src: '', title: '' },
       rightVideo: { src: '', title: '' },
-      activeVideo: 'left', // New data property to track the active video
+      activeVideo: 'left',
     }
   },
 
@@ -41,10 +40,8 @@ export default {
     },
 
     onPopulateVideos(left, right) {
-      this.setActiveVideo('left');
-      this.changeClippedVideo(left);
-      this.setActiveVideo('right');
-      this.changeClippedVideo(right);
+      this.leftVideo = left;
+      this.rightVideo = right;
     },
 
     setActiveVideo(side) {
@@ -65,6 +62,5 @@ export default {
 #app {
   display: grid;
   grid-template-columns: 1fr 3fr;
-  /* Adjusted for a more responsive layout */
 }
 </style>

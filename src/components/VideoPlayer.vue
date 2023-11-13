@@ -1,8 +1,9 @@
 <template>
   <div class="container">
-
+    <!-- Main Video is on the right! -->
+    <!-- Clipped Video is on the left! -->
     <div class="video-compare-container" ref="container" @mousedown="startSeeking">
-      <div v-show="leftVideo.src && mainVideoLoading" class="loading-overlay">
+      <div v-show="rightVideo.src && mainVideoLoading" class="loading-overlay">
         <div class="loading-spinner"></div>
       </div>
       <video
@@ -15,13 +16,13 @@
         @loadedmetadata="videoLoaded"
         @error="videoError"
       >
-        <source :src="leftVideo.src" type="video/mp4">
+        <source :src="rightVideo.src" type="video/mp4">
         <div v-show="mainVideoLoading" class="loading-overlay">
           <div class="loading-spinner"></div>
         </div>
       </video>
       <div class="video-clipper" ref="clipper">
-        <div v-show="rightVideo.src && clippedVideoLoading" class="loading-overlay">
+        <div v-show="leftVideo.src && clippedVideoLoading" class="loading-overlay">
           <div class="loading-spinner"></div>
         </div>
         <video
@@ -34,7 +35,7 @@
           @loadedmetadata="videoLoaded"
           @error="videoError"
         >
-          <source :src="rightVideo.src" type="video/mp4">
+          <source :src="leftVideo.src" type="video/mp4">
           <div v-show="clippedVideoLoading" class="loading-overlay">
             <div class="loading-spinner"></div>
           </div>
@@ -106,14 +107,14 @@
     watch: {
       'leftVideo.src': function(newSrc, oldSrc) {
         if (newSrc !== oldSrc) {
-          this.mainVideoLoading = true;
-          this.loadVideo(this.$refs.mainVideo, newSrc);
+          this.clippedVideoLoading = true;
+          this.loadVideo(this.$refs.clippedVideo, newSrc);
         }
       },
       'rightVideo.src': function(newSrc, oldSrc) {
         if (newSrc !== oldSrc) {
-          this.clippedVideoLoading = true;
-          this.loadVideo(this.$refs.clippedVideo, newSrc);
+          this.mainVideoLoading = true;
+          this.loadVideo(this.$refs.mainVideo, newSrc);
         }
       },
     },
@@ -121,7 +122,7 @@
     data() {
       return {
         isFullscreen: false,
-        selectedVideo: 'LEFT',
+        selectedVideo: 'RIGHT',
         mainVideoLoading: true,
         clippedVideoLoading: true,
         longestDuration: 0,
@@ -176,7 +177,6 @@
 
       emitSetActive(side) {
         this.setActive(side);
-        this.$emit('active-video-changed', side); // Emitting an event when active video is changed
       },
 
       // part of progress bar line which is commented out
