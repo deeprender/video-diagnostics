@@ -278,13 +278,26 @@
       },
 
       trackLocation(e) {
-        const rect = this.videoContainer.getBoundingClientRect();
-        const position = ((e.pageX - rect.left) / this.videoContainer.offsetWidth) * 100;
-        if (position <= 100) {
-          this.videoClipper.style.width = position + '%';
-          this.clippedVideo.style.width = (100 / position) * 100 + '%';
-          this.splitLine.style.left = position + '%';
+        if (this.isFullscreen) {
+          const rect = this.videoContainer.getBoundingClientRect();
+          const position = ((e.clientX - rect.left) / rect.width) * 100;
+          if (position <= 100) {
+            this.updateSliderPosition(position);
+          }
+        } else {
+          // Original logic for normal mode
+          const rect = this.videoContainer.getBoundingClientRect();
+          const position = ((e.clientX - rect.left) / this.videoContainer.offsetWidth) * 100;
+          if (position <= 100) {
+            this.updateSliderPosition(position);
+          }
         }
+      },
+
+      updateSliderPosition(position) {
+        this.videoClipper.style.width = position + '%';
+        this.clippedVideo.style.width = (100 / position) * 100 + '%';
+        this.splitLine.style.left = position + '%';
       },
 
       async updateVideos() {
