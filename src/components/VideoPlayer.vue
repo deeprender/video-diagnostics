@@ -671,6 +671,12 @@
     border: 2px solid #ccc;
     border-radius: 5px;
     margin-left: 10px;
+
+    max-width: 22em; /* Adjust the width as needed */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
   }
   .video-labels .video-label:hover {
     transform: scale(1.03);
