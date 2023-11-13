@@ -2,12 +2,12 @@
   <div class="scene-folder">
     <div class="scene-title" @click="toggleFolder">
       <font-awesome-icon class="folder-icon" :icon="folder.isOpen ? 'folder-open' : 'folder'" />
-      {{ folder.title }}
+      <div class="ellipsis">{{ folder.title }}</div>
     </div>
     <div v-if="folder.isOpen">
       <div v-for="video in folder.videoList" :key="video.id" class="video-tile" @click.stop="onVideoChange(video.src)">
         <font-awesome-icon class="tree-branch" icon="video" />
-        {{ video.title }}
+        <div class="ellipsis">{{ video.title }}</div>
       </div>
       <folder-item v-for="subFolder in folder.subFolders" :key="subFolder.id" :folder="subFolder"
         @video-selected="onVideoChange" @toggle-folder="onToggleFolder" @can-populate-videos="onCanPopulateVideos"/>
@@ -145,4 +145,10 @@ h3 {
 .tree-branch {
   margin-right: 5px;
 }
+.ellipsis {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 </style>
