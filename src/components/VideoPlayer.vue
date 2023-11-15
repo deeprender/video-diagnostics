@@ -122,7 +122,7 @@
     data() {
       return {
         isFullscreen: false,
-        selectedVideo: 'RIGHT',
+        selectedVideo: 'LEFT',
         mainVideoLoading: true,
         clippedVideoLoading: true,
         longestDuration: 0,
