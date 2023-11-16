@@ -15,7 +15,7 @@ app.get('/videos/list', (req, res) => {
   const dataTypeOrder = ['TH', 'TH-OB', 'TH-BB', 'TH-M'];
 
   const getBitrateIndex = name => {
-    return bitrateOrder.findIndex(bitrate => bitrate.includes(name));
+    return bitrateOrder.findIndex(bitrate => bitrate===name);
   };
 
   const getDataTypeIndex = name => {
@@ -28,7 +28,7 @@ app.get('/videos/list', (req, res) => {
   const sortDirectories = (a, b) => {
     const bitrateIndexA = getBitrateIndex(a.name);
     const bitrateIndexB = getBitrateIndex(b.name);
-
+    
     if (bitrateIndexA !== bitrateIndexB) {
       return bitrateIndexA - bitrateIndexB;
     }
