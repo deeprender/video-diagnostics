@@ -56,10 +56,10 @@ app.get('/videos/list', (req, res) => {
     return directories.map(dirent => {
       let dirName = dirent.name;
       
-      // Check and remove the SX_ prefix if present
-      if (dirName.match(/^S\d+_/)) {
-        dirName = dirName.replace(/^S\d+_/, '');
-      }
+      // // Check and remove the SX_ prefix if present
+      // if (dirName.match(/^S\d+_/)) {
+      //   dirName = dirName.replace(/^S\d+_/, '');
+      // }
   
       const direntPath = path.join(dir, dirent.name);
       const relativePath = path.join(parentPath, dirName);
