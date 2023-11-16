@@ -15,21 +15,14 @@ app.get('/videos/list', (req, res) => {
   const dataTypeOrder = ['TH', 'TH-OB', 'TH-BB', 'TH-M'];
 
   const getBitrateIndex = name => {
-    for (let i = 0; i < bitrateOrder.length; i++) {
-      if (name.includes(bitrateOrder[i])) {
-        return i;
-      }
-    }
-    return Number.MAX_VALUE;
+    return bitrateOrder.findIndex(bitrate => bitrate.includes(name));
   };
 
   const getDataTypeIndex = name => {
-    for (let i = 0; i < dataTypeOrder.length; i++) {
-      if (name.includes(dataTypeOrder[i])) {
-        return i;
-      }
-    }
-    return Number.MAX_VALUE;
+    
+    return dataTypeOrder.findIndex(dataType => {
+      return dataType == name;
+    });
   };
 
   const sortDirectories = (a, b) => {
@@ -54,15 +47,24 @@ app.get('/videos/list', (req, res) => {
 
   const listVideos = (dir, parentPath = '') => {
     let items = fs.readdirSync(dir, { withFileTypes: true });
-
-    let directories = items.filter(dirent => dirent.isDirectory()).sort(sortDirectories);
+  
+    let directories = items.filter(dirent => dirent.isDirectory());
     let files = items.filter(dirent => !dirent.isDirectory()).sort(sortFiles);
-
+  
+    directories.sort(sortDirectories);
+  
     return directories.map(dirent => {
+      let dirName = dirent.name;
+      
+      // Check and remove the SX_ prefix if present
+      if (dirName.match(/^S\d+_/)) {
+        dirName = dirName.replace(/^S\d+_/, '');
+      }
+  
       const direntPath = path.join(dir, dirent.name);
-      const relativePath = path.join(parentPath, dirent.name);
+      const relativePath = path.join(parentPath, dirName);
       return { 
-        title: dirent.name, 
+        title: dirName, 
         videos: listVideos(direntPath, relativePath) 
       };
     }).concat(files.map(dirent => {
@@ -73,7 +75,8 @@ app.get('/videos/list', (req, res) => {
         path: `videos/${relativePath}` 
       };
     }));
-  };
+  };  
+  
 
   const videos = listVideos(comparePath);
   res.json(videos);
@@ -82,4 +85,3 @@ app.get('/videos/list', (req, res) => {
 app.listen(port, '0.0.0.0', () => {
   console.log(`Server running at http://0.0.0.0:${port}`);
 });
-
