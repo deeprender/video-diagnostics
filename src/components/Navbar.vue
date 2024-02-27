@@ -141,7 +141,11 @@ export default {
     },
 
     extractTitleFromSrc(src) {
-      return src.split('/').pop().split('.')[0]; // Extract the file name without extension
+      // Split the path by '/', take the last element to get the file name
+      const fileName = src.split('/').pop();
+      // Use a regular expression to remove the last dot and the file extension that follows it
+      const title = fileName.replace(/\.[^/.]+$/, "");
+      return title;
     },
 
     populateVideos(left, right) {
