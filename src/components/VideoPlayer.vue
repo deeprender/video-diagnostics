@@ -47,7 +47,6 @@
       <!-- Progress Bar -->
       <div class="progress-container" ref="progressBar" @mousemove="updateLinePosition($event)" @click="seek($event)">
         <div class="progress-bar" :style="{ width: progressBarWidth }"></div>
-        <!-- <div class="progress-line" :style="{ left: linePosition + '%' }"></div>  -->
       </div>
 
 
@@ -147,8 +146,8 @@
       this.videoContainer.addEventListener('mousemove', this.trackLocation, false);
       this.videoContainer.addEventListener('touchstart', this.trackLocation, false);
       this.videoContainer.addEventListener('touchmove', this.trackLocation, false);
-      this.mainVideo.addEventListener('ended', this.syncVideos, false);
-      this.clippedVideo.addEventListener('ended', this.syncVideos, false);
+      this.mainVideo.addEventListener('ended', this.resetVideos, false);
+      this.clippedVideo.addEventListener('ended', this.resetVideos, false);
       window.addEventListener('keydown', this.handleArrowKeyPress);
       
       await this.updateCurrentTime();
