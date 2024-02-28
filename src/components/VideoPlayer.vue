@@ -392,7 +392,8 @@
         return new Promise((resolve, reject) => {
           videoElement.src = src;
           videoElement.load();
-          videoElement.onloadeddata = () => {
+          videoElement.oncanplaythrough = () => {
+
             resolve();
             videoElement.play().catch(e => console.error('Error trying to play video:', e));
           };
