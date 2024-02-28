@@ -4,13 +4,8 @@
       <input type="text" v-model="searchQuery" placeholder="Search videos..." />
     </div>
     <div class="scene-list">
-      <folder-item
-        v-for="folder in filteredSceneList"
-        :key="folder.id"
-        :folder="folder"
-        @video-selected="onVideoChange"
-        @toggle-folder="toggleScene"
-      />
+      <folder-item v-for="folder in filteredSceneList" :key="folder.id" :folder="folder" @can-populate-videos="populateVideos" @video-selected="onVideoChange"
+        @toggle-folder="toggleScene"/>
     </div>
   </div>
 </template>
@@ -39,15 +34,13 @@ export default {
       const filterScenes = (scenes, regex) => {
         return scenes.reduce((acc, scene) => {
           const match = regex.test(scene.title);
-          console.log('Checking scene', scene.title, 'Match:', match);
 
           const filteredVideos = scene.videoList.filter(video => regex.test(video.title));
           const filteredFolders = filterScenes(scene.subFolders, regex);
-          
+
           if (match || filteredVideos.length > 0 || filteredFolders.length > 0) {
             const filteredScene = { ...scene };
             if (!match) {
-              console.log('Folder does not match. Filtering descendants.');
               filteredScene.videoList = filteredVideos;
               filteredScene.subFolders = filteredFolders;
             }
@@ -58,11 +51,9 @@ export default {
       };
 
       if (!this.searchQuery) {
-        console.log('No search query. Returning full scene list.');
         return this.sceneList;
       }
       const regex = new RegExp(this.escapeRegex(this.searchQuery), 'i');
-      console.log('Filtering with regex:', regex);
       return filterScenes(this.sceneList, regex);
     }
   },
@@ -84,65 +75,92 @@ export default {
 
 
     transformScenesData(scenesData) {
-    const transformVideos = (videos, path) => {
-      return videos.flatMap(video => {
-        const videoPath = `${path}/${video.title}`;
-        if (video.videos) {
-          // If the video has nested videos, treat it as a folder and recursively transform
-          return transformFolder(video, videoPath);
-        }
-        // If the video is a leaf node, transform it into the required format
-        return {
-          id: video.filename,
-          title: video.title,
-          src: `/api/${video.path}`
-        };
-      });
-    };
-
-    const transformFolder = (folder, path) => {
-      const folderPath = `${path}/${folder.title}`;
-      const transformedFolder = {
-        id: folderPath,
-        title: folder.title,
-        isOpen: false,
-        videoList: [],
-        subFolders: []
+      const transformVideos = (videos, path) => {
+        return videos.flatMap(video => {
+          const videoPath = `${path}/${video.title}`;
+          if (video.videos) {
+            // If the video has nested videos, treat it as a folder and recursively transform
+            return transformFolder(video, videoPath);
+          }
+          // If the video is a leaf node, transform it into the required format
+          return {
+            id: video.filename,
+            title: video.title,
+            src: `/api/${video.path}`
+          };
+        });
       };
 
-      if (folder.videos) {
-        const videosAndFolders = transformVideos(folder.videos, folderPath);
-        // Separate videos and folders based on whether an item has a src property
-        transformedFolder.videoList = videosAndFolders.filter(item => item.src);
-        transformedFolder.subFolders = videosAndFolders.filter(item => !item.src);
-      }
+      const transformFolder = (folder, path) => {
+        const folderPath = `${path}/${folder.title}`;
+        const transformedFolder = {
+          id: folderPath,
+          title: folder.title,
+          isOpen: false,
+          videoList: [],
+          subFolders: []
+        };
 
-      return transformedFolder;
-    };
+        if (folder.videos) {
+          const videosAndFolders = transformVideos(folder.videos, folderPath);
+          // Separate videos and folders based on whether an item has a src property
+          transformedFolder.videoList = videosAndFolders.filter(item => item.src);
+          transformedFolder.subFolders = videosAndFolders.filter(item => !item.src);
+        }
 
-    return scenesData.map(scene => transformFolder(scene, ''));
-  },
+        return transformedFolder;
+      };
+
+      return scenesData.map(scene => transformFolder(scene, ''));
+    },
 
 
 
 
     toggleScene(sceneId) {
-    const toggleFolder = (folders) => {
-      return folders.map(folder => {
-        if (folder.id === sceneId) {
-          return { ...folder, isOpen: !folder.isOpen };
-        } else if (folder.subFolders && folder.subFolders.length > 0) {
-          const updatedSubFolders = toggleFolder(folder.subFolders);
-          return { ...folder, subFolders: updatedSubFolders };
-        }
-        return folder;
-      });
-    };
-    this.sceneList = toggleFolder(this.sceneList);
-  },
-    onVideoChange(src) {
-      this.$emit('video-selected', src);
+      const toggleFolder = (folders) => {
+        return folders.map(folder => {
+          if (folder.id === sceneId) {
+            return { ...folder, isOpen: !folder.isOpen };
+          } else if (folder.subFolders && folder.subFolders.length > 0) {
+            const updatedSubFolders = toggleFolder(folder.subFolders);
+            return { ...folder, subFolders: updatedSubFolders };
+          }
+          return folder;
+        });
+      };
+      this.sceneList = toggleFolder(this.sceneList);
     },
+
+    onVideoChange(videoSrc) {
+      const video = {
+        src: videoSrc,
+        title: this.extractTitleFromSrc(videoSrc)
+      };
+      this.$emit('video-selected', video);
+    },
+
+    extractTitleFromSrc(src) {
+      // Split the path by '/', take the last element to get the file name
+      const fileName = src.split('/').pop();
+      // Use a regular expression to remove the last dot and the file extension that follows it
+      const title = fileName.replace(/\.[^/.]+$/, "");
+      return title;
+    },
+
+    populateVideos(left, right) {
+      const leftVideo = {
+        src: left,
+        title: this.extractTitleFromSrc(left)
+      }
+
+      const rightVideo = {
+        src: right,
+        title: this.extractTitleFromSrc(right)
+      }
+      this.$emit('populate-videos', leftVideo, rightVideo)
+    }
+
   },
 };
 </script>
@@ -176,11 +194,14 @@ h3 {
   cursor: pointer;
   background-color: var(--vt-c-black-soft);
   border-radius: 6px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  /* Add box-shadow to the transition */
 }
 
 .scene-folder:hover {
   background-color: var(--vt-c-black-mute);
   color: var(--vt-c-text-dark-1);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 .scene-title {
