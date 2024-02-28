@@ -4,8 +4,8 @@
       <input type="text" v-model="searchQuery" placeholder="Search videos..." />
     </div>
     <div class="scene-list">
-      <folder-item v-for="folder in filteredSceneList" :key="folder.id" :folder="folder" @can-populate-videos="populateVideos" @video-selected="onVideoChange"
-        @toggle-folder="toggleScene"/>
+      <folder-item v-for="folder in filteredSceneList" :key="folder.id" :folder="folder"
+        @can-populate-videos="populateVideos" @video-selected="onVideoChange" @toggle-folder="toggleScene" />
     </div>
   </div>
 </template>

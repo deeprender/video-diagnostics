@@ -10,7 +10,7 @@
         <div class="ellipsis">{{ video.title }}</div>
       </div>
       <folder-item v-for="subFolder in folder.subFolders" :key="subFolder.id" :folder="subFolder"
-        @video-selected="onVideoChange" @toggle-folder="onToggleFolder" @can-populate-videos="onCanPopulateVideos"/>
+        @video-selected="onVideoChange" @toggle-folder="onToggleFolder" @can-populate-videos="onCanPopulateVideos" />
     </div>
   </div>
 </template>
@@ -60,8 +60,8 @@ export default {
     onToggleFolder(folderId) {
       this.$emit('toggle-folder', folderId);
     },
-    onCanPopulateVideos(left, right){
-      this.$emit('can-populate-videos', left,right)
+    onCanPopulateVideos(left, right) {
+      this.$emit('can-populate-videos', left, right)
     },
     canPopulateVideos(folder) {
       // Check if there are more than one video in the current folder and no subfolders
@@ -74,8 +74,6 @@ export default {
       }
       return null;
     },
-
-
   },
 };
 </script>
@@ -145,10 +143,10 @@ h3 {
 .tree-branch {
   margin-right: 5px;
 }
-.ellipsis {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
 
+.ellipsis {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 </style>
