@@ -179,11 +179,6 @@
       },
       syncPlaybackRates(){
         if (!this.clippedVideo || !this.mainVideo) return;
-        console.log("syncing")
-        console.log(`Left video: ${this.clippedVideo.currentTime};  Right video: ${this.mainVideo.currentTime}`) 
-        console.log(this.clippedVideo.currentTime)
-        console.log(this.mainVideo.currentTime)
-
 
         const timeDelta = Math.abs(this.mainVideo.currentTime - this.clippedVideo.currentTime);
         const timeRatio = this.mainVideo.currentTime / this.clippedVideo.currentTime;
@@ -200,11 +195,6 @@
         }
         this.clippedVideo.playbackRate = playbackRate;  
 
-      },
-      logCurrentTime() {
-        if (this.mainVideo) {
-          console.log('Current time:', this.mainVideo.currentTime);
-        }
       },
 
       emitSetActive(side) {
