@@ -136,6 +136,7 @@
       }
     },
     async mounted() {
+
       this.trackLocation = this.trackLocation.bind(this);
       this.videoContainer = this.$refs.container;
       this.videoClipper = this.$refs.clipper;
@@ -150,6 +151,9 @@
       this.clippedVideo.addEventListener('ended', this.resetVideos, false);
       window.addEventListener('keydown', this.handleArrowKeyPress);
       
+      this.mainVideo.addEventListener('timeupdate', this.syncPlaybackRates);
+
+
       await this.updateCurrentTime();
       this.db = await this.openDB();
 
@@ -172,6 +176,35 @@
     methods: {
       setActive(side) {
         this.$emit('set-active-video', side);
+      },
+      syncPlaybackRates(){
+        if (!this.clippedVideo || !this.mainVideo) return;
+        console.log("syncing")
+        console.log(`Left video: ${this.clippedVideo.currentTime};  Right video: ${this.mainVideo.currentTime}`) 
+        console.log(this.clippedVideo.currentTime)
+        console.log(this.mainVideo.currentTime)
+
+
+        const timeDelta = Math.abs(this.mainVideo.currentTime - this.clippedVideo.currentTime);
+        const timeRatio = this.mainVideo.currentTime / this.clippedVideo.currentTime;
+        if (isNaN(timeRatio)) return;
+        const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+
+        let playbackRate = 1.0;
+        if (timeDelta * 1000 > 1.0) {
+          playbackRate = Math.pow(timeRatio, 10.0);
+          playbackRate = clamp(playbackRate, 0.5, 10.0);
+        } else {
+          playbackRate = Math.pow(timeRatio, 1.0);
+          playbackRate = clamp(playbackRate, 0.5, 2.0);
+        }
+        this.clippedVideo.playbackRate = playbackRate;  
+
+      },
+      logCurrentTime() {
+        if (this.mainVideo) {
+          console.log('Current time:', this.mainVideo.currentTime);
+        }
       },
 
       emitSetActive(side) {
