@@ -181,21 +181,21 @@
         if (!this.clippedVideo || !this.mainVideo) return;
 
         const timeDelta = Math.abs(this.mainVideo.currentTime - this.clippedVideo.currentTime);
-        const timeRatio = this.mainVideo.currentTime / this.clippedVideo.currentTime;
+        const timeRatio = this.clippedVideo.currentTime / this.mainVideo.currentTime;
         if (isNaN(timeRatio)) return;
         const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 
         let playbackRate = 1.0;
         if (timeDelta * 1000 > 1.0) {
-          playbackRate = Math.pow(timeRatio, 10.0);
-          playbackRate = clamp(playbackRate, 0.5, 10.0);
+            playbackRate = Math.pow(timeRatio, 10.0);
+            playbackRate = clamp(playbackRate, 0.5, 10.0);
         } else {
-          playbackRate = Math.pow(timeRatio, 1.0);
-          playbackRate = clamp(playbackRate, 0.5, 2.0);
+            playbackRate = Math.pow(timeRatio, 1.0);
+            playbackRate = clamp(playbackRate, 0.5, 2.0);
         }
-        this.clippedVideo.playbackRate = playbackRate;  
+        this.mainVideo.playbackRate = playbackRate;
+    },
 
-      },
 
       emitSetActive(side) {
         this.setActive(side);
@@ -323,6 +323,7 @@
       },
 
       async updateVideos() {
+        console.log("updateVideos")
         try {
           let updateMainVideo = false;
           let updateClippedVideo = false;
@@ -355,6 +356,7 @@
         }
       },
       async updateVideoSource(src, videoElement, isLeftVideo) {
+        console.log("updating video source")
         const cachedVideo = await this.getCachedVideo(src);
         if (cachedVideo) {
           videoElement.src = cachedVideo;
@@ -412,6 +414,7 @@
       },
 
       loadVideo(videoElement, src) {
+        console.log("loadVideo")
         return new Promise((resolve, reject) => {
           videoElement.src = src;
           videoElement.load();
