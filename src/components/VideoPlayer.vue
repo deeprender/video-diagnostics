@@ -287,6 +287,8 @@
 
       stopSeeking() {
         this.seeking = false;
+        this.isPlaying = true; 
+        
         // Remove the event listeners from the window
         window.removeEventListener('mousemove', this.seek);
         window.removeEventListener('mouseup', this.stopSeeking);
