@@ -255,28 +255,35 @@
         if (!this.seeking) return;
 
         const bounds = this.$refs.progressBar.getBoundingClientRect();
-        let seekTime;
-        let position = 0;
+        const clickPosition = event.clientX - bounds.left;
+        let seekTime = (clickPosition / bounds.width) * this.longestDuration;
 
-        if (event.currentTarget === this.$refs.progressBar || event.type === 'mousemove') {
-          const clickPosition = event.clientX - bounds.left;
-          seekTime = (clickPosition / bounds.width) * this.longestDuration;
-          position = (clickPosition / bounds.width) * 100;
-        } else {
-          // Handle seeking logic when dragging on the video itself
-          const videoRect = this.$refs.container.getBoundingClientRect();
-          const clickX = event.clientX - videoRect.left;
-          const clickRatio = clickX / videoRect.width;
-          seekTime = clickRatio * this.longestDuration;
-          position = clickRatio * 100;
-        }
+        // Calculate the minimum buffered time for both videos
+        let minBufferedTime = Math.min(
+          this.getBufferedTime(this.$refs.mainVideo, seekTime),
+          this.getBufferedTime(this.$refs.clippedVideo, seekTime)
+        );
+
+        // Restrict seekTime to minBufferedTime
+        seekTime = Math.min(seekTime, minBufferedTime);
 
         // Update the video's current time and the line position
         this.$refs.mainVideo.currentTime = seekTime;
         this.$refs.clippedVideo.currentTime = seekTime;
         this.currentTime = seekTime;
-        this.linePosition = position;
+        this.linePosition = (clickPosition / bounds.width) * 100;
       },
+
+      // Helper method to get buffered time up to a specific time
+      getBufferedTime(videoElement, time) {
+        for (let i = 0; i < videoElement.buffered.length; i++) {
+          if (videoElement.buffered.start(i) <= time && time <= videoElement.buffered.end(i)) {
+            return videoElement.buffered.end(i);
+          }
+        }
+        return 0; // If not buffered, return 0
+      },
+
 
       stopSeeking() {
         this.seeking = false;
