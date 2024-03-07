@@ -9,8 +9,8 @@
       <video
         class="video-main"
         :class="{ 'fullscreen': isFullscreen }"
-        autoplay
         muted
+        autoplay
         ref="mainVideo"
         preload="auto"
         @loadedmetadata="videoLoaded"
@@ -28,8 +28,8 @@
         <video
           class="video-clipped"
           :class="{ 'fullscreen': isFullscreen }"
-          autoplay
           muted
+          autoplay
           preload="auto"
           ref="clippedVideo"
           @loadedmetadata="videoLoaded"
@@ -135,7 +135,7 @@
         indexedDB: null, // Database connection
         lastLeftVideoSrc: '',
         lastRightVideoSrc: '',
-        isPlaying: false,
+        isPlaying: true,
         isStacked: false,
 
       }
@@ -184,6 +184,7 @@
       },
       syncPlaybackRates(){
         if (!this.clippedVideo || !this.mainVideo) return;
+        if (this.mainVideo.currentTime < 0.1 || this.clippedVideo.currentTime < 0.1) return;
 
         const timeDelta = Math.abs(this.mainVideo.currentTime - this.clippedVideo.currentTime);
         const timeRatio = this.clippedVideo.currentTime / this.mainVideo.currentTime;
@@ -223,18 +224,10 @@
           this.mainVideoLoading = false;
         } else if (event.target === this.$refs.clippedVideo) {
           this.clippedVideoLoading = false;
-        }
-        this.syncAndPlayVideos();
-      },
-
-      syncAndPlayVideos() {
+        } 
         const currentTime = Math.min(this.$refs.mainVideo.currentTime, this.$refs.clippedVideo.currentTime);
         this.$refs.mainVideo.currentTime = currentTime;
         this.$refs.clippedVideo.currentTime = currentTime;
-
-        // Play both videos
-        this.playVideo(this.$refs.mainVideo);
-        this.playVideo(this.$refs.clippedVideo);
       },
       
       async playVideo(videoElement) {
@@ -292,7 +285,7 @@
 
       stopSeeking() {
         this.seeking = false;
-        this.isPlaying = true; 
+        // this.isPlaying = true; 
         
         // Remove the event listeners from the window
         window.removeEventListener('mousemove', this.seek);
@@ -379,7 +372,7 @@
           }
 
           await Promise.all(updates);
-          this.syncVideos(); // Sync and play videos after updates
+          // this.syncVideos(); // Sync and play videos after updates
         } catch (error) {
           console.error("Error loading videos:", error);
         }
@@ -445,7 +438,9 @@
           videoElement.oncanplaythrough = () => {
 
             resolve();
-            videoElement.play().catch(e => console.error('Error trying to play video:', e));
+            if(this.isPlaying){
+              videoElement.play().catch(e => console.error('Error trying to play video:', e));
+            }
           };
           videoElement.onerror = () => reject("Error loading video");
         });

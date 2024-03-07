@@ -33,7 +33,7 @@ export default {
         } else {
           this.rightVideo = video;
         }
-        this.$refs.videoCompare.syncVideos(); // Sync videos after update
+        // this.$refs.videoCompare.syncVideos(); // Sync videos after update
       } else {
         console.error('Invalid video data received:', video);
       }
@@ -52,7 +52,7 @@ export default {
       const temp = this.rightVideo
       this.rightVideo = this.leftVideo
       this.leftVideo = temp
-      this.$refs.videoCompare.syncVideos(); // Sync videos after update
+      // this.$refs.videoCompare.syncVideos(); // Sync videos after update
     },
   },
 };
