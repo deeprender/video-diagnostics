@@ -136,6 +136,7 @@
       }
     },
     async mounted() {
+
       this.trackLocation = this.trackLocation.bind(this);
       this.videoContainer = this.$refs.container;
       this.videoClipper = this.$refs.clipper;
@@ -150,6 +151,9 @@
       this.clippedVideo.addEventListener('ended', this.resetVideos, false);
       window.addEventListener('keydown', this.handleArrowKeyPress);
       
+      this.mainVideo.addEventListener('timeupdate', this.syncPlaybackRates);
+
+
       await this.updateCurrentTime();
       this.db = await this.openDB();
 
@@ -173,6 +177,25 @@
       setActive(side) {
         this.$emit('set-active-video', side);
       },
+      syncPlaybackRates(){
+        if (!this.clippedVideo || !this.mainVideo) return;
+
+        const timeDelta = Math.abs(this.mainVideo.currentTime - this.clippedVideo.currentTime);
+        const timeRatio = this.clippedVideo.currentTime / this.mainVideo.currentTime;
+        if (isNaN(timeRatio)) return;
+        const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+
+        let playbackRate = 1.0;
+        if (timeDelta * 1000 > 1.0) {
+            playbackRate = Math.pow(timeRatio, 10.0);
+            playbackRate = clamp(playbackRate, 0.5, 10.0);
+        } else {
+            playbackRate = Math.pow(timeRatio, 1.0);
+            playbackRate = clamp(playbackRate, 0.5, 2.0);
+        }
+        this.mainVideo.playbackRate = playbackRate;
+    },
+
 
       emitSetActive(side) {
         this.setActive(side);
@@ -232,31 +255,40 @@
         if (!this.seeking) return;
 
         const bounds = this.$refs.progressBar.getBoundingClientRect();
-        let seekTime;
-        let position = 0;
+        const clickPosition = event.clientX - bounds.left;
+        let seekTime = (clickPosition / bounds.width) * this.longestDuration;
 
-        if (event.currentTarget === this.$refs.progressBar || event.type === 'mousemove') {
-          const clickPosition = event.clientX - bounds.left;
-          seekTime = (clickPosition / bounds.width) * this.longestDuration;
-          position = (clickPosition / bounds.width) * 100;
-        } else {
-          // Handle seeking logic when dragging on the video itself
-          const videoRect = this.$refs.container.getBoundingClientRect();
-          const clickX = event.clientX - videoRect.left;
-          const clickRatio = clickX / videoRect.width;
-          seekTime = clickRatio * this.longestDuration;
-          position = clickRatio * 100;
-        }
+        // Calculate the minimum buffered time for both videos
+        let minBufferedTime = Math.min(
+          this.getBufferedTime(this.$refs.mainVideo, seekTime),
+          this.getBufferedTime(this.$refs.clippedVideo, seekTime)
+        );
+
+        // Restrict seekTime to minBufferedTime
+        seekTime = Math.min(seekTime, minBufferedTime);
 
         // Update the video's current time and the line position
         this.$refs.mainVideo.currentTime = seekTime;
         this.$refs.clippedVideo.currentTime = seekTime;
         this.currentTime = seekTime;
-        this.linePosition = position;
+        this.linePosition = (clickPosition / bounds.width) * 100;
       },
+
+      // Helper method to get buffered time up to a specific time
+      getBufferedTime(videoElement, time) {
+        for (let i = 0; i < videoElement.buffered.length; i++) {
+          if (videoElement.buffered.start(i) <= time && time <= videoElement.buffered.end(i)) {
+            return videoElement.buffered.end(i);
+          }
+        }
+        return 0; // If not buffered, return 0
+      },
+
 
       stopSeeking() {
         this.seeking = false;
+        this.isPlaying = true; 
+        
         // Remove the event listeners from the window
         window.removeEventListener('mousemove', this.seek);
         window.removeEventListener('mouseup', this.stopSeeking);
@@ -364,15 +396,12 @@
       },
 
       async cacheVideo(src, blob) {
-        console.log("caching video")
         const transaction = this.db.transaction(['videos'], 'readwrite');
         const store = transaction.objectStore('videos');
         store.put(blob, src);
       },
 
       async getCachedVideo(src) {
-        console.log("getting cached video")
-
         const transaction = this.db.transaction(['videos'], 'readonly');
         const store = transaction.objectStore('videos');
         const request = store.get(src);

@@ -82,11 +82,12 @@ export default {
             // If the video has nested videos, treat it as a folder and recursively transform
             return transformFolder(video, videoPath);
           }
+          let video_src = import.meta.env.VITE_CLOUDFRONT_URI ? video.cloudfront : `/api/${video.path}`;
           // If the video is a leaf node, transform it into the required format
           return {
             id: video.filename,
             title: video.title,
-            src: `/api/${video.path}`
+            src: video_src
           };
         });
       };
