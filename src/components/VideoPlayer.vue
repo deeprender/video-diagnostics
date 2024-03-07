@@ -74,11 +74,11 @@
         </button>
       <button class="video-button" @click="swapVideos">
           <font-awesome-icon icon="exchange-alt" />
-          Swap
+          Swap [P]
         </button>
         <button class="video-button" @click="resetVideos">
           <font-awesome-icon icon="step-forward" />
-          Reset
+          Reset [R]
         </button>
         <button class="video-button" @click="togglePlayPause">
           <font-awesome-icon :icon="isPlaying ? 'pause' : 'play'" />
@@ -87,7 +87,7 @@
 
         <button class="video-button" @click="toggleFullscreen">
           <font-awesome-icon icon="expand" />
-          Fullscreen
+          Fullscreen [F]
         </button>        
      
     </div>
@@ -520,6 +520,15 @@
           event.preventDefault(); // Prevent the default spacebar action (scrolling)
         }else if (event.keyCode === 83) { // 'S' key
           this.toggleStackMode();
+        }
+        else if (event.keyCode === 82){
+          this.resetVideos();
+        }
+        else if (event.keyCode === 70){
+          this.toggleFullscreen();
+        }
+        else if (event.keyCode === 80){
+          this.swapVideos();
         }
       },
       handleArrowKeyPress(event) {
