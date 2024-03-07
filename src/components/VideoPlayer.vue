@@ -68,6 +68,10 @@
 
     <!-- Control Buttons -->
     <div class="button-container">
+      <button class="video-button" @click="toggleStackMode">
+          <font-awesome-icon icon="layers" />
+          {{ isStacked ? 'In stacked mode [S]' : 'In side-by-side mode [S]' }}
+        </button>
       <button class="video-button" @click="swapVideos">
           <font-awesome-icon icon="exchange-alt" />
           Swap
@@ -78,7 +82,7 @@
         </button>
         <button class="video-button" @click="togglePlayPause">
           <font-awesome-icon :icon="isPlaying ? 'pause' : 'play'" />
-          {{ isPlaying ? 'Pause' : 'Play' }}
+          {{ isPlaying ? 'Pause [SPACE]' : 'Play [SPACE]' }}
         </button>
 
         <button class="video-button" @click="toggleFullscreen">
@@ -132,6 +136,7 @@
         lastLeftVideoSrc: '',
         lastRightVideoSrc: '',
         isPlaying: false,
+        isStacked: false,
 
       }
     },
@@ -157,7 +162,7 @@
       await this.updateCurrentTime();
       this.db = await this.openDB();
 
-      window.addEventListener('keydown', this.handleSpacebarPress);
+      window.addEventListener('keydown', this.handleKeyPress);
     },
     computed: {
       progressBarWidth() {
@@ -325,11 +330,27 @@
         }
       },
 
-      updateSliderPosition(position) {
-        this.videoClipper.style.width = position + '%';
-        this.clippedVideo.style.width = (100 / position) * 100 + '%';
-        this.splitLine.style.left = position + '%';
-      },
+      toggleStackMode() {
+          this.isStacked = !this.isStacked;
+          this.updateSliderPosition(this.isStacked ? 100 : 50); // Reset to default positions
+        },
+
+        updateSliderPosition(position) {
+          if (this.isStacked) {
+            this.splitLine.style.display = 'none'; // Hide split line
+            // Reset styles for stacked mode
+            this.videoClipper.style.width = '100%';
+            this.clippedVideo.style.width = '100%';
+            this.mainVideo.style.width = '100%';
+          } else {
+            this.splitLine.style.display = 'block'; // Show split line
+            // Original logic for side-by-side mode
+            this.videoClipper.style.width = position + '%';
+            this.clippedVideo.style.width = (100 / position) * 100 + '%';
+            this.mainVideo.style.width = '100%';
+            this.splitLine.style.left = position + '%';
+          }
+        },
 
       async updateVideos() {
         try {
@@ -493,10 +514,12 @@
         }
       },
 
-      handleSpacebarPress(event) {
+      handleKeyPress(event) {
         if (event.keyCode === 32) { // 32 is the key code for the spacebar
           this.togglePlayPause();
           event.preventDefault(); // Prevent the default spacebar action (scrolling)
+        }else if (event.keyCode === 83) { // 'S' key
+          this.toggleStackMode();
         }
       },
       handleArrowKeyPress(event) {
@@ -518,7 +541,7 @@
       window.removeEventListener('mousemove', this.seek);
       window.removeEventListener('mouseup', this.stopSeeking);
       window.removeEventListener('keydown', this.handleArrowKeyPress);
-      window.removeEventListener('keydown', this.handleSpacebarPress);
+      window.removeEventListener('keydown', this.handleKeyPress);
     }
   }
 </script>
@@ -661,6 +684,18 @@
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
     transform: scale(1.03);
   }
+  .video-clipper.stacked {
+    width: 100%;
+    z-index: 1; /* Adjust as necessary */
+  }
+
+  .video-clipped.stacked {
+    width: 100%;
+  }
+
+  .video-main.stacked {
+    width: 100%;
+  }
 
   .button-container {
     /* margin-top: 10px; */
@@ -671,7 +706,7 @@
     box-sizing: border-box;
     z-index: 4;
     grid-row: 3;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(5, 1fr);
   }
 
   .video-labels {
