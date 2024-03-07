@@ -69,7 +69,7 @@
     <!-- Control Buttons -->
     <div class="button-container">
       <button class="video-button" @click="toggleStackMode">
-          <font-awesome-icon icon="layers" />
+          <font-awesome-icon :icon="isStacked ? 'layer-group' : 'arrows-left-right'" />
           {{ isStacked ? 'In stacked mode [S]' : 'In side-by-side mode [S]' }}
         </button>
       <button class="video-button" @click="swapVideos">
