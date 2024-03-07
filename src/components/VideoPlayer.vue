@@ -332,7 +332,6 @@
       },
 
       async updateVideos() {
-        console.log("updateVideos")
         try {
           let updateMainVideo = false;
           let updateClippedVideo = false;
@@ -365,7 +364,6 @@
         }
       },
       async updateVideoSource(src, videoElement, isLeftVideo) {
-        console.log("updating video source")
         const cachedVideo = await this.getCachedVideo(src);
         if (cachedVideo) {
           videoElement.src = cachedVideo;
@@ -398,15 +396,12 @@
       },
 
       async cacheVideo(src, blob) {
-        console.log("caching video")
         const transaction = this.db.transaction(['videos'], 'readwrite');
         const store = transaction.objectStore('videos');
         store.put(blob, src);
       },
 
       async getCachedVideo(src) {
-        console.log("getting cached video")
-
         const transaction = this.db.transaction(['videos'], 'readonly');
         const store = transaction.objectStore('videos');
         const request = store.get(src);
@@ -423,7 +418,6 @@
       },
 
       loadVideo(videoElement, src) {
-        console.log("loadVideo")
         return new Promise((resolve, reject) => {
           videoElement.src = src;
           videoElement.load();
