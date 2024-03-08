@@ -54,7 +54,6 @@ export default {
       const temp = this.rightVideo
       this.rightVideo = this.leftVideo
       this.leftVideo = temp
-      // this.$refs.videoCompare.syncVideos(); // Sync videos after update
     },
   },
 };

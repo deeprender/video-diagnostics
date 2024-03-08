@@ -381,7 +381,6 @@
           }
 
           await Promise.all(updates);
-          // this.syncVideos(); // Sync and play videos after updates
         } catch (error) {
           console.error("Error loading videos:", error);
         }
@@ -462,7 +461,6 @@
             this.$refs.mainVideo.play(),
             this.$refs.clippedVideo.play()
           ])
-          console.log("this is now syncing")
           this.isPlaying = true
         } catch (error) {
           console.error('Error trying to play video:', error);
