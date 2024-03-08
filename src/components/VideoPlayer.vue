@@ -8,6 +8,7 @@
       </div>
       <video
         class="video-main"
+        :style="{ zIndex: mainVideoZIndex }"
         :class="{ 'fullscreen': isFullscreen }"
         muted
         autoplay
@@ -28,6 +29,7 @@
         <video
           class="video-clipped"
           :class="{ 'fullscreen': isFullscreen }"
+          :style="{ zIndex: clippedVideoZIndex }"
           muted
           autoplay
           preload="auto"
@@ -137,7 +139,8 @@
         lastRightVideoSrc: '',
         isPlaying: true,
         isStacked: false,
-
+        mainVideoZIndex: 2,
+        clippedVideoZIndex: 3,
       }
     },
     async mounted() {
@@ -324,9 +327,14 @@
       },
 
       toggleStackMode() {
-          this.isStacked = !this.isStacked;
-          this.updateSliderPosition(this.isStacked ? 100 : 50); // Reset to default positions
-        },
+        this.isStacked = !this.isStacked;
+        if (!this.isStacked) {
+          // Reset z-index values when exiting stacked mode
+          this.mainVideoZIndex = 2;
+          this.clippedVideoZIndex = 3;
+        }
+        this.updateSliderPosition(this.isStacked ? 100 : 50); // Reset to default positions
+      },
 
         updateSliderPosition(position) {
           if (this.isStacked) {
@@ -467,12 +475,20 @@
           this.$refs.mainVideo.play(),
           this.$refs.clippedVideo.play()
         ]);
+        this.isPlaying = true;
       },
 
       swapVideos() {
-        this.$emit('swap-videos');
-        this.isPlaying = true;
+        if (this.isStacked) {
+          // Swap the z-index values of the main and clipped videos
+          [this.mainVideoZIndex, this.clippedVideoZIndex] = [this.clippedVideoZIndex, this.mainVideoZIndex];
+        } else {
+          // Default behavior for swapping videos in split mode
+          this.$emit('swap-videos');
+          this.isPlaying = true;
+        }
       },
+
 
       async pauseVideos() {
         await this.mainVideo.pause();   
