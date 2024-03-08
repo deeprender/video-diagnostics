@@ -70,7 +70,7 @@
     <div class="button-container">
       <button class="video-button" @click="toggleStackMode">
           <font-awesome-icon :icon="isStacked ? 'layer-group' : 'arrows-left-right'" />
-          {{ isStacked ? 'In stacked mode [S]' : 'In side-by-side mode [S]' }}
+          {{ isStacked ? 'Stacked mode [S]' : 'Split mode [S]' }}
         </button>
       <button class="video-button" @click="swapVideos">
           <font-awesome-icon icon="exchange-alt" />
@@ -471,6 +471,7 @@
 
       swapVideos() {
         this.$emit('swap-videos');
+        this.isPlaying = true;
       },
 
       async pauseVideos() {
