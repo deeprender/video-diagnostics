@@ -8,9 +8,10 @@
       </div>
       <video
         class="video-main"
+        :style="{ zIndex: mainVideoZIndex }"
         :class="{ 'fullscreen': isFullscreen }"
-        autoplay
         muted
+        autoplay
         ref="mainVideo"
         preload="auto"
         @loadedmetadata="videoLoaded"
@@ -28,8 +29,9 @@
         <video
           class="video-clipped"
           :class="{ 'fullscreen': isFullscreen }"
-          autoplay
+          :style="{ zIndex: clippedVideoZIndex }"
           muted
+          autoplay
           preload="auto"
           ref="clippedVideo"
           @loadedmetadata="videoLoaded"
@@ -55,35 +57,40 @@
 
 
     <!-- Video Labels -->
-    <div class="video-labels">
-      <label @click="emitSetActive('left')">
+    <div class="video-labels" :class="{ 'stacked-labels': isStacked }">
+      <label  @click="emitSetActive('left')">
         <input type="radio" name="video-selection" value="LEFT" v-model="selectedVideo" />
-        <span class="video-label">LEFT: {{ leftVideo.title }}</span>
+        <span v-if="!isStacked || clippedVideoZIndex > mainVideoZIndex" :class="['video-label', { 'active-label': isStacked && clippedVideoZIndex > mainVideoZIndex }]">LEFT: {{ leftVideo.title }}</span>
       </label>
-      <label @click="emitSetActive('right')">
+      <label  @click="emitSetActive('right')">
         <input type="radio" name="video-selection" value="RIGHT" v-model="selectedVideo" />
-        <span class="video-label">RIGHT: {{ rightVideo.title }}</span>
+        <span v-if="!isStacked || clippedVideoZIndex < mainVideoZIndex" :class="['video-label', { 'active-label': isStacked && clippedVideoZIndex < mainVideoZIndex }]">RIGHT: {{ rightVideo.title }}</span>
       </label>
+
     </div>
 
     <!-- Control Buttons -->
     <div class="button-container">
+      <button class="video-button" @click="toggleStackMode">
+          <font-awesome-icon :icon="isStacked ? 'layer-group' : 'arrows-left-right'" />
+          {{ isStacked ? 'Stacked mode [S]' : 'Split mode [S]' }}
+        </button>
       <button class="video-button" @click="swapVideos">
           <font-awesome-icon icon="exchange-alt" />
-          Swap
+          Swap [P]
         </button>
         <button class="video-button" @click="resetVideos">
           <font-awesome-icon icon="step-forward" />
-          Reset
+          Reset [R]
         </button>
         <button class="video-button" @click="togglePlayPause">
           <font-awesome-icon :icon="isPlaying ? 'pause' : 'play'" />
-          {{ isPlaying ? 'Pause' : 'Play' }}
+          {{ isPlaying ? 'Pause [SPACE]' : 'Play [SPACE]' }}
         </button>
 
         <button class="video-button" @click="toggleFullscreen">
           <font-awesome-icon icon="expand" />
-          Fullscreen
+          Fullscreen [F]
         </button>        
      
     </div>
@@ -131,8 +138,10 @@
         indexedDB: null, // Database connection
         lastLeftVideoSrc: '',
         lastRightVideoSrc: '',
-        isPlaying: false,
-
+        isPlaying: true,
+        isStacked: false,
+        mainVideoZIndex: 2,
+        clippedVideoZIndex: 3,
       }
     },
     async mounted() {
@@ -157,7 +166,7 @@
       await this.updateCurrentTime();
       this.db = await this.openDB();
 
-      window.addEventListener('keydown', this.handleSpacebarPress);
+      window.addEventListener('keydown', this.handleKeyPress);
     },
     computed: {
       progressBarWidth() {
@@ -179,6 +188,7 @@
       },
       syncPlaybackRates(){
         if (!this.clippedVideo || !this.mainVideo) return;
+        if (this.mainVideo.currentTime < 0.1 || this.clippedVideo.currentTime < 0.1) return;
 
         const timeDelta = Math.abs(this.mainVideo.currentTime - this.clippedVideo.currentTime);
         const timeRatio = this.clippedVideo.currentTime / this.mainVideo.currentTime;
@@ -218,18 +228,10 @@
           this.mainVideoLoading = false;
         } else if (event.target === this.$refs.clippedVideo) {
           this.clippedVideoLoading = false;
-        }
-        this.syncAndPlayVideos();
-      },
-
-      syncAndPlayVideos() {
+        } 
         const currentTime = Math.min(this.$refs.mainVideo.currentTime, this.$refs.clippedVideo.currentTime);
         this.$refs.mainVideo.currentTime = currentTime;
         this.$refs.clippedVideo.currentTime = currentTime;
-
-        // Play both videos
-        this.playVideo(this.$refs.mainVideo);
-        this.playVideo(this.$refs.clippedVideo);
       },
       
       async playVideo(videoElement) {
@@ -287,7 +289,7 @@
 
       stopSeeking() {
         this.seeking = false;
-        this.isPlaying = true; 
+        // this.isPlaying = true; 
         
         // Remove the event listeners from the window
         window.removeEventListener('mousemove', this.seek);
@@ -325,11 +327,32 @@
         }
       },
 
-      updateSliderPosition(position) {
-        this.videoClipper.style.width = position + '%';
-        this.clippedVideo.style.width = (100 / position) * 100 + '%';
-        this.splitLine.style.left = position + '%';
+      toggleStackMode() {
+        this.isStacked = !this.isStacked;
+        if (!this.isStacked) {
+          // Reset z-index values when exiting stacked mode
+          this.mainVideoZIndex = 2;
+          this.clippedVideoZIndex = 3;
+        }
+        this.updateSliderPosition(this.isStacked ? 100 : 50); // Reset to default positions
       },
+
+        updateSliderPosition(position) {
+          if (this.isStacked) {
+            this.splitLine.style.display = 'none'; // Hide split line
+            // Reset styles for stacked mode
+            this.videoClipper.style.width = '100%';
+            this.clippedVideo.style.width = '100%';
+            this.mainVideo.style.width = '100%';
+          } else {
+            this.splitLine.style.display = 'block'; // Show split line
+            // Original logic for side-by-side mode
+            this.videoClipper.style.width = position + '%';
+            this.clippedVideo.style.width = (100 / position) * 100 + '%';
+            this.mainVideo.style.width = '100%';
+            this.splitLine.style.left = position + '%';
+          }
+        },
 
       async updateVideos() {
         try {
@@ -358,7 +381,6 @@
           }
 
           await Promise.all(updates);
-          this.syncVideos(); // Sync and play videos after updates
         } catch (error) {
           console.error("Error loading videos:", error);
         }
@@ -424,7 +446,9 @@
           videoElement.oncanplaythrough = () => {
 
             resolve();
-            videoElement.play().catch(e => console.error('Error trying to play video:', e));
+            if(this.isPlaying){
+              videoElement.play().catch(e => console.error('Error trying to play video:', e));
+            }
           };
           videoElement.onerror = () => reject("Error loading video");
         });
@@ -437,7 +461,7 @@
             this.$refs.mainVideo.play(),
             this.$refs.clippedVideo.play()
           ])
-
+          this.isPlaying = true
         } catch (error) {
           console.error('Error trying to play video:', error);
         }
@@ -450,11 +474,20 @@
           this.$refs.mainVideo.play(),
           this.$refs.clippedVideo.play()
         ]);
+        this.isPlaying = true;
       },
 
       swapVideos() {
-        this.$emit('swap-videos');
+        if (this.isStacked) {
+          // Swap the z-index values of the main and clipped videos
+          [this.mainVideoZIndex, this.clippedVideoZIndex] = [this.clippedVideoZIndex, this.mainVideoZIndex];
+        } else {
+          // Default behavior for swapping videos in split mode
+          this.$emit('swap-videos');
+          this.isPlaying = true;
+        }
       },
+
 
       async pauseVideos() {
         await this.mainVideo.pause();   
@@ -493,10 +526,21 @@
         }
       },
 
-      handleSpacebarPress(event) {
+      handleKeyPress(event) {
         if (event.keyCode === 32) { // 32 is the key code for the spacebar
           this.togglePlayPause();
           event.preventDefault(); // Prevent the default spacebar action (scrolling)
+        }else if (event.keyCode === 83) { // 'S' key
+          this.toggleStackMode();
+        }
+        else if (event.keyCode === 82){
+          this.resetVideos();
+        }
+        else if (event.keyCode === 70){
+          this.toggleFullscreen();
+        }
+        else if (event.keyCode === 80){
+          this.swapVideos();
         }
       },
       handleArrowKeyPress(event) {
@@ -518,7 +562,7 @@
       window.removeEventListener('mousemove', this.seek);
       window.removeEventListener('mouseup', this.stopSeeking);
       window.removeEventListener('keydown', this.handleArrowKeyPress);
-      window.removeEventListener('keydown', this.handleSpacebarPress);
+      window.removeEventListener('keydown', this.handleKeyPress);
     }
   }
 </script>
@@ -661,6 +705,18 @@
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
     transform: scale(1.03);
   }
+  .video-clipper.stacked {
+    width: 100%;
+    z-index: 1; /* Adjust as necessary */
+  }
+
+  .video-clipped.stacked {
+    width: 100%;
+  }
+
+  .video-main.stacked {
+    width: 100%;
+  }
 
   .button-container {
     /* margin-top: 10px; */
@@ -671,7 +727,7 @@
     box-sizing: border-box;
     z-index: 4;
     grid-row: 3;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(5, 1fr);
   }
 
   .video-labels {
@@ -716,4 +772,12 @@
     color: #fff;
     border-color: var(--vt-c-indigo);
   }
+  .video-labels .video-label.active-label {
+    outline: 2px solid red;
+  }
+
+  .video-labels.stacked-labels .video-label {
+    border-color: transparent; /* Remove the white border */
+  }
+
 </style>
