@@ -33,7 +33,7 @@ export default {
         } else {
           this.rightVideo = video;
         }
-        // this.$refs.videoCompare.syncVideos(); // Sync videos after update
+        this.$refs.videoCompare.syncVideos(); 
       } else {
         console.error('Invalid video data received:', video);
       }
@@ -42,6 +42,8 @@ export default {
     onPopulateVideos(left, right) {
       this.leftVideo = left;
       this.rightVideo = right;
+      this.$refs.videoCompare.syncVideos(); 
+
     },
 
     setActiveVideo(side) {

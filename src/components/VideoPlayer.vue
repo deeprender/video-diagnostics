@@ -453,7 +453,8 @@
             this.$refs.mainVideo.play(),
             this.$refs.clippedVideo.play()
           ])
-
+          console.log("this is now syncing")
+          this.isPlaying = true
         } catch (error) {
           console.error('Error trying to play video:', error);
         }
