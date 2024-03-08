@@ -57,15 +57,16 @@
 
 
     <!-- Video Labels -->
-    <div class="video-labels">
-      <label @click="emitSetActive('left')">
+    <div class="video-labels" :class="{ 'stacked-labels': isStacked }">
+      <label  @click="emitSetActive('left')">
         <input type="radio" name="video-selection" value="LEFT" v-model="selectedVideo" />
-        <span class="video-label">LEFT: {{ leftVideo.title }}</span>
+        <span v-if="!isStacked || clippedVideoZIndex > mainVideoZIndex" :class="['video-label', { 'active-label': isStacked && clippedVideoZIndex > mainVideoZIndex }]">LEFT: {{ leftVideo.title }}</span>
       </label>
-      <label @click="emitSetActive('right')">
+      <label  @click="emitSetActive('right')">
         <input type="radio" name="video-selection" value="RIGHT" v-model="selectedVideo" />
-        <span class="video-label">RIGHT: {{ rightVideo.title }}</span>
+        <span v-if="!isStacked || clippedVideoZIndex < mainVideoZIndex" :class="['video-label', { 'active-label': isStacked && clippedVideoZIndex < mainVideoZIndex }]">RIGHT: {{ rightVideo.title }}</span>
       </label>
+
     </div>
 
     <!-- Control Buttons -->
@@ -773,4 +774,12 @@
     color: #fff;
     border-color: var(--vt-c-indigo);
   }
+  .video-labels .video-label.active-label {
+    outline: 2px solid red;
+  }
+
+  .video-labels.stacked-labels .video-label {
+    border-color: transparent; /* Remove the white border */
+  }
+
 </style>
