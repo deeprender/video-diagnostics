@@ -16,6 +16,7 @@ export default defineConfig({
       '/api': {
         target: 'https://natas.zebra-moth.ts.net',
         secure: false,
+        ws: true,
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, '')
       },
