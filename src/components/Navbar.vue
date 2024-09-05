@@ -15,7 +15,6 @@ import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import FolderItem from './FolderItem.vue';
 import { isTauri } from '../utils/environment';
 
-
 export default {
   components: {
     FontAwesomeIcon,
@@ -32,9 +31,30 @@ export default {
       type: Array,
       default: () => [],
     },
+    isDirectorySelected: {
+      type: Boolean,
+      default: false,
+    },
   },
   async mounted() {
-    await this.populateSceneList();
+    if (!isTauri) {
+      await this.populateSceneList();
+    }
+  },
+  watch: {
+    isDirectorySelected(newValue) {
+      if (isTauri && newValue) {
+        this.populateSceneList();
+      }
+    },
+    videoList: {
+      handler() {
+        if (isTauri) {
+          this.populateSceneList();
+        }
+      },
+      deep: true,
+    },
   },
   computed: {
     filteredSceneList() {
@@ -70,6 +90,7 @@ export default {
       return text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
     },
     async populateSceneList() {
+      console.debug("Populating scene list with video list: ", this.videoList);
       if (isTauri) {
         this.sceneList = this.transformScenesData(this.videoList);
       } else {
@@ -86,8 +107,10 @@ export default {
 
 
     transformScenesData(scenesData) {
+      console.debug("Transforming scenes data: ", scenesData);
       const transformVideos = (videos, path) => {
         return videos.flatMap(video => {
+          console.debug("Transforming video: ", video);
           const videoPath = `${path}/${video.title}`;
           if (video.videos) {
             // If the video has nested videos, treat it as a folder and recursively transform

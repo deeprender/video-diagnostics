@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use tauri::Manager;
 use serde::{Serialize, Deserialize};
 use std::fs;
-use serde_json::{json, Value};
+use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 struct Video {
@@ -24,7 +24,9 @@ struct Folder {
 #[tauri::command]
 fn parse_videos(path: String) -> Result<Folder, String> {
     let root = PathBuf::from(path);
-    parse_folder(&root, &root)
+    let folder = parse_folder(&root, &root)?;
+    println!("folder: {:?}", folder);
+    Ok(folder)
 }
 
 #[tauri::command]
@@ -69,6 +71,7 @@ fn parse_folder(dir: &PathBuf, root: &PathBuf) -> Result<Folder, String> {
     for entry in std::fs::read_dir(dir).map_err(|e| e.to_string())? {
         let entry = entry.map_err(|e| e.to_string())?;
         let path = entry.path();
+        println!("path: {:?}", path);
 
         if path.is_dir() {
             folder.subfolders.push(parse_folder(&path, root)?);
@@ -83,7 +86,7 @@ fn parse_folder(dir: &PathBuf, root: &PathBuf) -> Result<Folder, String> {
             }
         }
     }
-
+    println!("folder: {:?}", folder);
     Ok(folder)
 }
 

@@ -1,7 +1,8 @@
 <template>
   <div id="app">
     <DialogComponent :show="showDialog" @directory-selected="onDirectorySelected" />
-    <Navbar @video-selected="changeClippedVideo" @populate-videos="onPopulateVideos" :videoList="videoList"></Navbar>
+    <Navbar @video-selected="changeClippedVideo" @populate-videos="onPopulateVideos" :videoList="videoList"
+      :isDirectorySelected="!!baseDirectory"></Navbar>
     <VideoCompare ref="videoCompare" :leftVideo="leftVideo" :rightVideo="rightVideo" @set-active-video="setActiveVideo"
       @swap-videos="swapVideos">
     </VideoCompare>
@@ -11,8 +12,8 @@
 <script>
 import Navbar from './components/Navbar.vue';
 import VideoCompare from './components/VideoPlayer.vue';
+import DialogComponent from './components/DialogComponent.vue';
 import { isTauri } from './utils/environment';
-import { open } from '@tauri-apps/api/dialog';
 import { invoke } from '@tauri-apps/api/tauri';
 
 export default {
@@ -20,6 +21,7 @@ export default {
   components: {
     Navbar,
     VideoCompare,
+    DialogComponent
   },
   data() {
     return {
@@ -27,6 +29,8 @@ export default {
       rightVideo: { src: '', title: '' },
       activeVideo: 'left',
       baseDirectory: '',
+      showDialog: isTauri,
+      videoList: [],
     }
   },
 
@@ -65,16 +69,23 @@ export default {
       }
     },
     async loadVideosFromDirectory() {
+      console.debug("Loading videos from directory: ", this.baseDirectory);
       if (isTauri && this.baseDirectory) {
         try {
-          const videos = await invoke('list_videos', { path: this.baseDirectory });
-          // Update your video list with the returned videos
-          // You might need to emit an event to update the Navbar component
-          this.$emit('update-video-list', videos);
+          const videos = await invoke('parse_videos', { path: this.baseDirectory });
+          console.debug("Videos loaded: ", videos);
+          this.videoList = [videos]; // Wrap in array to match expected structure
         } catch (error) {
           console.error('Error loading videos:', error);
         }
       }
+    },
+
+    async onDirectorySelected(directory) {
+      this.baseDirectory = directory;
+      this.showDialog = false;
+      console.log("Directory selected: ", directory);
+      await this.loadVideosFromDirectory();
     },
 
     setActiveVideo(side) {
@@ -87,6 +98,12 @@ export default {
       this.leftVideo = temp
     },
   },
+  mounted() {
+    if (!isTauri) {
+      // For web mode, you might want to load videos from an API or use a default list
+      this.videoList = [];
+    }
+  }
 };
 </script>
 
