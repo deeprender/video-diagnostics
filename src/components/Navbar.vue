@@ -4,8 +4,8 @@
       <input type="text" v-model="searchQuery" placeholder="Search videos..." />
     </div>
     <div class="scene-list">
-      <folder-item v-for="folder in filteredSceneList" :key="folder.id" :folder="folder" @can-populate-videos="populateVideos" @video-selected="onVideoChange"
-        @toggle-folder="toggleScene"/>
+      <folder-item v-for="folder in filteredSceneList" :key="folder.id" :folder="folder"
+        @can-populate-videos="populateVideos" @video-selected="onVideoChange" @toggle-folder="toggleScene" />
     </div>
   </div>
 </template>
@@ -13,6 +13,7 @@
 <script>
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import FolderItem from './FolderItem.vue';
+import { isTauri } from '../utils/environment';
 
 
 export default {
@@ -25,6 +26,12 @@ export default {
       sceneList: [],
       searchQuery: "",
     };
+  },
+  props: {
+    videoList: {
+      type: Array,
+      default: () => [],
+    },
   },
   async mounted() {
     await this.populateSceneList();
@@ -63,13 +70,17 @@ export default {
       return text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
     },
     async populateSceneList() {
-      try {
-        const response = await fetch('/api/videos/list');
-        if (!response.ok) throw new Error('Network response was not ok');
-        const scenesData = await response.json();
-        this.sceneList = this.transformScenesData(scenesData);
-      } catch (error) {
-        console.error('Error fetching video list:', error);
+      if (isTauri) {
+        this.sceneList = this.transformScenesData(this.videoList);
+      } else {
+        try {
+          const response = await fetch('/api/videos/list');
+          if (!response.ok) throw new Error('Network response was not ok');
+          const scenesData = await response.json();
+          this.sceneList = this.transformScenesData(scenesData);
+        } catch (error) {
+          console.error('Error fetching video list:', error);
+        }
       }
     },
 

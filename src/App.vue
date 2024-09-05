@@ -1,8 +1,9 @@
 <template>
   <div id="app">
-    <!-- Added ref to VideoCompare for accessing its methods -->
-    <Navbar @video-selected="changeClippedVideo" @populate-videos="onPopulateVideos"></Navbar>
-    <VideoCompare ref="videoCompare" :leftVideo="leftVideo" :rightVideo="rightVideo" @set-active-video="setActiveVideo" @swap-videos="swapVideos">
+    <DialogComponent :show="showDialog" @directory-selected="onDirectorySelected" />
+    <Navbar @video-selected="changeClippedVideo" @populate-videos="onPopulateVideos" :videoList="videoList"></Navbar>
+    <VideoCompare ref="videoCompare" :leftVideo="leftVideo" :rightVideo="rightVideo" @set-active-video="setActiveVideo"
+      @swap-videos="swapVideos">
     </VideoCompare>
   </div>
 </template>
@@ -10,6 +11,9 @@
 <script>
 import Navbar from './components/Navbar.vue';
 import VideoCompare from './components/VideoPlayer.vue';
+import { isTauri } from './utils/environment';
+import { open } from '@tauri-apps/api/dialog';
+import { invoke } from '@tauri-apps/api/tauri';
 
 export default {
   name: 'App',
@@ -22,6 +26,7 @@ export default {
       leftVideo: { src: '', title: '' },
       rightVideo: { src: '', title: '' },
       activeVideo: 'left',
+      baseDirectory: '',
     }
   },
 
@@ -33,7 +38,7 @@ export default {
         } else {
           this.rightVideo = video;
         }
-        this.$refs.videoCompare.syncVideos(); 
+        this.$refs.videoCompare.syncVideos();
       } else {
         console.error('Invalid video data received:', video);
       }
@@ -42,8 +47,34 @@ export default {
     onPopulateVideos(left, right) {
       this.leftVideo = left;
       this.rightVideo = right;
-      this.$refs.videoCompare.syncVideos(); 
+      this.$refs.videoCompare.syncVideos();
 
+    },
+
+    async selectBaseDirectory() {
+      if (isTauri) {
+        const selected = await open({
+          directory: true,
+          multiple: false,
+          title: 'Select Base Directory for Videos',
+        });
+        if (selected) {
+          this.baseDirectory = selected;
+          await this.loadVideosFromDirectory();
+        }
+      }
+    },
+    async loadVideosFromDirectory() {
+      if (isTauri && this.baseDirectory) {
+        try {
+          const videos = await invoke('list_videos', { path: this.baseDirectory });
+          // Update your video list with the returned videos
+          // You might need to emit an event to update the Navbar component
+          this.$emit('update-video-list', videos);
+        } catch (error) {
+          console.error('Error loading videos:', error);
+        }
+      }
     },
 
     setActiveVideo(side) {
