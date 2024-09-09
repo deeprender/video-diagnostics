@@ -9,7 +9,7 @@ const port = 3001;
 
 dotenv.config();
 
-const comparePath = '/compare';
+const comparePath = process.env.COMPARE_PATH ? process.env.COMPARE_PATH : `${require('os').homedir()}/compare`;
 const cloudfront_base_uri = process.env.VITE_CLOUDFRONT_URI ? process.env.VITE_CLOUDFRONT_URI : '';
 
 
