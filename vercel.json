@@ -2,7 +2,7 @@
     "rewrites": [
         {
             "source": "/api/(.*)",
-            "destination": "https://natas.zebra-moth.ts.net/$1"
+            "destination": "https://natas.zebra-moth.ts.net/intel/$1"
         },
         {
             "source": "/(.*)",
