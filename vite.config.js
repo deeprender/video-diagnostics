@@ -15,7 +15,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'https://natas.zebra-moth.ts.net',
+        target: 'https://natas.zebra-moth.ts.net/ivs',
         secure: false,
         ws: true,
         changeOrigin: true,
