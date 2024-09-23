@@ -53,15 +53,21 @@ export default {
       if (!this.searchQuery) {
         return this.sceneList;
       }
-      const regex = new RegExp(this.escapeRegex(this.searchQuery), 'i');
+
+      let regex;
+      try {
+        // Directly use the user's input as a regex
+        regex = new RegExp(this.searchQuery, 'i');
+      } catch (e) {
+        // If the regex is invalid, return the full scene list
+        return this.sceneList;
+      }
+
       return filterScenes(this.sceneList, regex);
     }
   },
 
   methods: {
-    escapeRegex(text) {
-      return text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
-    },
     async populateSceneList() {
       try {
         const response = await fetch('/api/videos/list');
@@ -153,13 +159,13 @@ export default {
       const leftVideo = {
         src: left,
         title: this.extractTitleFromSrc(left)
-      }
+      };
 
       const rightVideo = {
         src: right,
         title: this.extractTitleFromSrc(right)
-      }
-      this.$emit('populate-videos', leftVideo, rightVideo)
+      };
+      this.$emit('populate-videos', leftVideo, rightVideo);
     }
 
   },
