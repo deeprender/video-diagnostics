@@ -60,11 +60,19 @@
     <div class="video-labels" :class="{ 'stacked-labels': isStacked }">
       <label  @click="emitSetActive('left')">
         <input type="radio" name="video-selection" value="LEFT" v-model="selectedVideo" />
-        <span v-if="!isStacked || clippedVideoZIndex > mainVideoZIndex" :class="['video-label', { 'active-label': isStacked && clippedVideoZIndex > mainVideoZIndex }]">LEFT: {{ leftVideo.title }}</span>
+        <span v-if="!isStacked || clippedVideoZIndex > mainVideoZIndex"
+            :class="['video-label', { 'active-label': isStacked && clippedVideoZIndex > mainVideoZIndex }]"
+            :title="leftVideo.title">
+            LEFT: {{ leftVideo.title }}
+        </span>
       </label>
       <label  @click="emitSetActive('right')">
         <input type="radio" name="video-selection" value="RIGHT" v-model="selectedVideo" />
-        <span v-if="!isStacked || clippedVideoZIndex < mainVideoZIndex" :class="['video-label', { 'active-label': isStacked && clippedVideoZIndex < mainVideoZIndex }]">RIGHT: {{ rightVideo.title }}</span>
+        <span v-if="!isStacked || clippedVideoZIndex < mainVideoZIndex"
+            :class="['video-label', { 'active-label': isStacked && clippedVideoZIndex < mainVideoZIndex }]"
+            :title="rightVideo.title">
+            RIGHT: {{ rightVideo.title }}
+        </span>
       </label>
 
     </div>
@@ -779,7 +787,7 @@
     border-radius: 5px;
     margin-left: 10px;
 
-    max-width: 22em; /* Adjust the width as needed */
+    max-width: 25em; /* Adjust the width as needed */
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
