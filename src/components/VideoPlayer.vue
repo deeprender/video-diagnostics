@@ -45,7 +45,7 @@
         </video>
       </div>
       <div class="split-line" ref="splitLine"></div>
-      
+
       <!-- Progress Bar -->
       <div class="progress-container" ref="progressBar" @mousemove="updateLinePosition($event)" @click="seek($event)">
         <div class="progress-bar" :style="{ width: progressBarWidth }"></div>
@@ -60,11 +60,19 @@
     <div class="video-labels" :class="{ 'stacked-labels': isStacked }">
       <label  @click="emitSetActive('left')">
         <input type="radio" name="video-selection" value="LEFT" v-model="selectedVideo" />
-        <span v-if="!isStacked || clippedVideoZIndex > mainVideoZIndex" :class="['video-label', { 'active-label': isStacked && clippedVideoZIndex > mainVideoZIndex }]">LEFT: {{ leftVideo.title }}</span>
+        <span v-if="!isStacked || clippedVideoZIndex > mainVideoZIndex"
+            :class="['video-label', { 'active-label': isStacked && clippedVideoZIndex > mainVideoZIndex }]"
+            :title="leftVideo.title">
+            LEFT: {{ leftVideo.title }}
+        </span>
       </label>
       <label  @click="emitSetActive('right')">
         <input type="radio" name="video-selection" value="RIGHT" v-model="selectedVideo" />
-        <span v-if="!isStacked || clippedVideoZIndex < mainVideoZIndex" :class="['video-label', { 'active-label': isStacked && clippedVideoZIndex < mainVideoZIndex }]">RIGHT: {{ rightVideo.title }}</span>
+        <span v-if="!isStacked || clippedVideoZIndex < mainVideoZIndex"
+            :class="['video-label', { 'active-label': isStacked && clippedVideoZIndex < mainVideoZIndex }]"
+            :title="rightVideo.title">
+            RIGHT: {{ rightVideo.title }}
+        </span>
       </label>
 
     </div>
@@ -91,8 +99,12 @@
         <button class="video-button" @click="toggleFullscreen">
           <font-awesome-icon icon="expand" />
           Fullscreen [F]
-        </button>        
-     
+        </button>
+      <button class="video-button" @click="toggleSyncPlayback">
+        <font-awesome-icon :icon="isSyncEnabled ? 'link' : 'unlink'" />
+        {{ isSyncEnabled ? 'Disable Sync [Y]' : 'Enable Sync [Y]' }}
+      </button>
+
     </div>
   </div>
 </template>
@@ -142,6 +154,7 @@
         isStacked: false,
         mainVideoZIndex: 2,
         clippedVideoZIndex: 3,
+        isSyncEnabled: false, // New property to track sync state
       }
     },
     async mounted() {
@@ -159,7 +172,7 @@
       this.mainVideo.addEventListener('ended', this.resetVideos, false);
       this.clippedVideo.addEventListener('ended', this.resetVideos, false);
       window.addEventListener('keydown', this.handleArrowKeyPress);
-      
+
       this.mainVideo.addEventListener('timeupdate', this.syncPlaybackRates);
 
 
@@ -187,21 +200,26 @@
         this.$emit('set-active-video', side);
       },
       syncPlaybackRates(){
+        if (!this.isSyncEnabled) return; // Exit if sync is disabled
         if (!this.clippedVideo || !this.mainVideo) return;
-        if (this.mainVideo.currentTime < 0.1 || this.clippedVideo.currentTime < 0.1) return;
+        if (this.mainVideo.currentTime < 0.2 || this.clippedVideo.currentTime < 0.2) return;
 
         const timeDelta = Math.abs(this.mainVideo.currentTime - this.clippedVideo.currentTime);
+        // timeDelta is in seconds
         const timeRatio = this.clippedVideo.currentTime / this.mainVideo.currentTime;
         if (isNaN(timeRatio)) return;
         const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 
+
         let playbackRate = 1.0;
-        if (timeDelta * 1000 > 1.0) {
+        // if the timeDelta is greater than 15 miliseconds start correcting
+        // note that 15 miliseconds is less than 1 frame at 60fps.
+        if (timeDelta * 1000 > 15.0) {
             playbackRate = Math.pow(timeRatio, 10.0);
-            playbackRate = clamp(playbackRate, 0.5, 10.0);
+            playbackRate = clamp(playbackRate, 0.5, 1.4);
         } else {
             playbackRate = Math.pow(timeRatio, 1.0);
-            playbackRate = clamp(playbackRate, 0.5, 2.0);
+            playbackRate = clamp(playbackRate, 0.5, 1.4);
         }
         this.mainVideo.playbackRate = playbackRate;
     },
@@ -228,12 +246,12 @@
           this.mainVideoLoading = false;
         } else if (event.target === this.$refs.clippedVideo) {
           this.clippedVideoLoading = false;
-        } 
+        }
         const currentTime = Math.min(this.$refs.mainVideo.currentTime, this.$refs.clippedVideo.currentTime);
         this.$refs.mainVideo.currentTime = currentTime;
         this.$refs.clippedVideo.currentTime = currentTime;
       },
-      
+
       async playVideo(videoElement) {
         try {
           await videoElement.play();
@@ -245,7 +263,7 @@
 
       startSeeking(event) {
         this.seeking = true;
-        this.seek(event); 
+        this.seek(event);
 
         // Add mousemove and mouseup event listeners to the window
         window.addEventListener('mousemove', this.seek);
@@ -289,8 +307,8 @@
 
       stopSeeking() {
         this.seeking = false;
-        // this.isPlaying = true; 
-        
+        // this.isPlaying = true;
+
         // Remove the event listeners from the window
         window.removeEventListener('mousemove', this.seek);
         window.removeEventListener('mouseup', this.stopSeeking);
@@ -400,7 +418,7 @@
           this.mainVideoLoading = false;
         } else {
           this.clippedVideoLoading = false;
-        }        
+        }
       },
 
       async openDB() {
@@ -490,7 +508,7 @@
 
 
       async pauseVideos() {
-        await this.mainVideo.pause();   
+        await this.mainVideo.pause();
         await this.clippedVideo.pause();
         this.isPlaying = false;
       },
@@ -542,9 +560,12 @@
         else if (event.keyCode === 80){
           this.swapVideos();
         }
+        else if (event.keyCode === 89) { // 'Y' key
+          this.toggleSyncPlayback();
+        }
       },
       handleArrowKeyPress(event) {
-        const step = 0.5; // Time to seek in seconds
+        const step = 0.033; // Time to seek in seconds
         if (event.keyCode === 39) { // 39 is the key code for the right arrow
           this.$refs.mainVideo.currentTime = Math.min(this.$refs.mainVideo.currentTime + step, this.$refs.mainVideo.duration);
           this.$refs.clippedVideo.currentTime = Math.min(this.$refs.clippedVideo.currentTime + step, this.$refs.clippedVideo.duration);
@@ -555,7 +576,16 @@
       },
       getFileName(src) {
         return src.split('/').pop();
-      }
+      },
+      toggleSyncPlayback() {
+        this.isSyncEnabled = !this.isSyncEnabled;
+        if (!this.isSyncEnabled) {
+          // Reset playback rates to 1 when disabling sync
+          if (this.mainVideo) this.mainVideo.playbackRate = 1;
+          if (this.clippedVideo) this.clippedVideo.playbackRate = 1;
+          this.lastPlaybackRate = 1.0;
+        }
+      },
     },
     destroyed() {
       // Remove event listeners if they were added
@@ -597,7 +627,7 @@
   .container {
     display: grid;
     grid-column: 2;
-    grid-template-rows: auto 50px 50px;
+    grid-template-rows: auto 50px 75px;
     /* height: 100vh; */
     height: 99vh;
   }
@@ -677,7 +707,7 @@
   .split-line {
     position: absolute;
     top: 0;
-    bottom: 10px; 
+    bottom: 10px;
     width: 0.5px;
     background: #fff;
     z-index: 2;
@@ -727,11 +757,11 @@
     box-sizing: border-box;
     z-index: 4;
     grid-row: 3;
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(6, 1fr);
   }
 
   .video-labels {
-    margin-top: 10px; 
+    margin-top: 10px;
     display: flex;
     justify-content: space-between;
     padding: 0 2.5%;
@@ -757,7 +787,7 @@
     border-radius: 5px;
     margin-left: 10px;
 
-    max-width: 22em; /* Adjust the width as needed */
+    max-width: 25em; /* Adjust the width as needed */
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
